@@ -1,0 +1,4 @@
+Symlinking /home/super/uestc-gbplanner/devel/share/planner_common/cmake/planner_commonConfig.cmake
+Symlinking /home/super/uestc-gbplanner/devel/share/planner_common/cmake/planner_commonConfig-version.cmake
+Symlinking /home/super/uestc-gbplanner/devel/lib/libplanner_common.so
+Symlinking /home/super/uestc-gbplanner/devel/lib/pkgconfig/planner_common.pc

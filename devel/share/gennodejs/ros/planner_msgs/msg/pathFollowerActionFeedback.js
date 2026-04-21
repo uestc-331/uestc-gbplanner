@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/planner_msgs/share/gennodejs/ros/planner_msgs/msg/pathFollowerActionFeedback.js

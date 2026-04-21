@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/catkin_tools_prebuild/setup.fish

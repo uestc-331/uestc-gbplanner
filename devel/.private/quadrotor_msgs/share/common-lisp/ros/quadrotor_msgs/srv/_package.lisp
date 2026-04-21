@@ -1,0 +1,10 @@
+(cl:defpackage quadrotor_msgs-srv
+  (:use )
+  (:export
+   "SETTAKEOFFLAND"
+   "<SETTAKEOFFLAND-REQUEST>"
+   "SETTAKEOFFLAND-REQUEST"
+   "<SETTAKEOFFLAND-RESPONSE>"
+   "SETTAKEOFFLAND-RESPONSE"
+  ))
+

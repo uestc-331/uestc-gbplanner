@@ -1,0 +1,1 @@
+/usr/bin/cc -fPIC -O3 -DNDEBUG  -shared -Wl,-soname,libkdtree.so -o /home/super/uestc-gbplanner/devel/.private/kdtree/lib/libkdtree.so CMakeFiles/kdtree.dir/src/kdtree.c.o 

@@ -1,0 +1,12 @@
+Symlinking /root/wjh/uestc-gbplanner/devel/./local_setup.zsh
+Symlinking /root/wjh/uestc-gbplanner/devel/./local_setup.bash
+Symlinking /root/wjh/uestc-gbplanner/devel/./env.sh
+Symlinking /root/wjh/uestc-gbplanner/devel/./setup.bash
+Symlinking /root/wjh/uestc-gbplanner/devel/./setup.zsh
+Symlinking /root/wjh/uestc-gbplanner/devel/./_setup_util.py
+Symlinking /root/wjh/uestc-gbplanner/devel/./local_setup.sh
+Symlinking /root/wjh/uestc-gbplanner/devel/./setup.sh
+Symlinking /root/wjh/uestc-gbplanner/devel/./cmake.lock
+Symlinking /root/wjh/uestc-gbplanner/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig.cmake
+Symlinking /root/wjh/uestc-gbplanner/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig-version.cmake
+Symlinking /root/wjh/uestc-gbplanner/devel/lib/pkgconfig/catkin_tools_prebuild.pc

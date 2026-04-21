@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/gbplanner_ui
+
+Name: gbplanner_ui
+Description: Description of gbplanner_ui
+Version: 0.0.1
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

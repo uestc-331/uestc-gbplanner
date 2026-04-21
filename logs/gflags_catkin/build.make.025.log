@@ -1,0 +1,99 @@
+[35m[1mScanning dependencies of target gflags_src[0m
+[ 12%] [34m[1mCreating directories for 'gflags_src'[0m
+[ 25%] [34m[1mPerforming download step (download, verify and extract) for 'gflags_src'[0m
+-- Downloading...
+   dst='/home/super/uestc-gbplanner/build/gflags_catkin/gflags_src-prefix/src/v2.2.1.zip'
+   timeout='none'
+-- Using src='https://github.com/gflags/gflags/archive/v2.2.1.zip'
+-- Retrying...
+-- Using src='https://github.com/gflags/gflags/archive/v2.2.1.zip'
+-- Retry after 5 seconds (attempt #2) ...
+-- Using src='https://github.com/gflags/gflags/archive/v2.2.1.zip'
+-- Retry after 5 seconds (attempt #3) ...
+-- Using src='https://github.com/gflags/gflags/archive/v2.2.1.zip'
+-- Retry after 15 seconds (attempt #4) ...
+-- Using src='https://github.com/gflags/gflags/archive/v2.2.1.zip'
+-- Retry after 60 seconds (attempt #5) ...
+-- Using src='https://github.com/gflags/gflags/archive/v2.2.1.zip'
+CMake Error at gflags_src-stamp/download-gflags_src.cmake:159 (message):
+  Each download failed!
+
+    error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         
+    
+
+
+make[2]: *** [CMakeFiles/gflags_src.dir/build.make:91：gflags_src-prefix/src/gflags_src-stamp/gflags_src-download] 错误 1
+make[1]: *** [CMakeFiles/Makefile2:196：CMakeFiles/gflags_src.dir/all] 错误 2
+make: *** [Makefile:141：all] 错误 2

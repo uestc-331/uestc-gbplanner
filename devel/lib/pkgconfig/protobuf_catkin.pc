@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/protobuf_catkin/lib/pkgconfig/protobuf_catkin.pc

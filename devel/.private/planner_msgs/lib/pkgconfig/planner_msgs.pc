@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/planner_msgs
+
+Name: planner_msgs
+Description: Description of planner_msgs
+Version: 1.0.0
+Cflags: -I/home/super/uestc-gbplanner/devel/.private/planner_msgs/include
+Libs: -L${prefix}/lib 
+Requires: message_runtime geometry_msgs actionlib_msgs

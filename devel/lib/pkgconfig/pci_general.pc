@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/pci_general/lib/pkgconfig/pci_general.pc

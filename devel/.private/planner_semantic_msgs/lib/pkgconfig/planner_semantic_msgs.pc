@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/planner_semantic_msgs
+
+Name: planner_semantic_msgs
+Description: Description of planner_semantic_msgs
+Version: 1.0.0
+Cflags: -I/home/super/uestc-gbplanner/devel/.private/planner_semantic_msgs/include
+Libs: -L${prefix}/lib 
+Requires: message_runtime geometry_msgs

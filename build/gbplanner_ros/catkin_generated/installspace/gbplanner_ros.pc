@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/install
+
+Name: gbplanner_ros
+Description: Description of gbplanner_ros
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: gbplanner planner_control_interface

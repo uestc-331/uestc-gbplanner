@@ -1,0 +1,8 @@
+CMake Error: CMAKE_C_COMPILER not set, after EnableLanguage
+[31m[1mCMake Error[0m at /usr/share/cmake-3.16/Modules/CMakeDetermineCompilerABI.cmake:45 (try_compile):
+  Failed to configure test project build system.
+[36mCall Stack (most recent call first):[0m
+  /usr/share/cmake-3.16/Modules/CMakeTestCCompiler.cmake:74 (CMAKE_DETERMINE_COMPILER_ABI)
+  CMakeLists.txt:2 (project)
+
+

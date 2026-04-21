@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/minkindr_conversions/lib/pkgconfig/minkindr_conversions.pc

@@ -1,0 +1,8 @@
+Symlinking /home/super/uestc-gbplanner/devel/share/voxblox/cmake/voxblox-extras.cmake
+Symlinking /home/super/uestc-gbplanner/devel/share/voxblox/cmake/voxbloxConfig.cmake
+Symlinking /home/super/uestc-gbplanner/devel/share/voxblox/cmake/voxbloxConfig-version.cmake
+Symlinking /home/super/uestc-gbplanner/devel/lib/libvoxblox.so
+Symlinking /home/super/uestc-gbplanner/devel/lib/libvoxblox_proto.so
+Symlinking /home/super/uestc-gbplanner/devel/lib/pkgconfig/voxblox.pc
+Symlinking /home/super/uestc-gbplanner/devel/lib/voxblox/tsdf_to_esdf
+Symlinking /home/super/uestc-gbplanner/devel/lib/voxblox/test_load_esdf

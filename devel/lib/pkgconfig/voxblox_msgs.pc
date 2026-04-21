@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/voxblox_msgs/lib/pkgconfig/voxblox_msgs.pc

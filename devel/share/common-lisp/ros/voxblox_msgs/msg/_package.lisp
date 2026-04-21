@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/voxblox_msgs/share/common-lisp/ros/voxblox_msgs/msg/_package.lisp

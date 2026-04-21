@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/planner_semantic_msgs/lib/pkgconfig/planner_semantic_msgs.pc

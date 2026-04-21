@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/quadrotor_msgs/share/common-lisp/ros/quadrotor_msgs/msg/Px4ctrlDebug.lisp

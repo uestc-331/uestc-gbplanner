@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/voxblox_msgs/share/voxblox_msgs/cmake/voxblox_msgsConfig-version.cmake

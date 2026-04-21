@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/mav_msgs/include/mav_msgs/AttitudeThrust.h

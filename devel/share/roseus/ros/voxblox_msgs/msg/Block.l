@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/voxblox_msgs/share/roseus/ros/voxblox_msgs/msg/Block.l

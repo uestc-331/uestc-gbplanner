@@ -1,0 +1,16 @@
+In file included from [01m[K/home/super/uestc-gbplanner/src/misc/minkindr/minkindr/include/kindr/minimal/quat-transformation.h:200[m[K,
+                 from [01m[K/home/super/uestc-gbplanner/src/misc/minkindr_ros/minkindr_conversions/include/minkindr_conversions/kindr_msg.h:10[m[K,
+                 from [01m[K/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_ros/src/voxblox_eval.cc:1[m[K:
+/home/super/uestc-gbplanner/src/misc/minkindr/minkindr/include/kindr/minimal/implementation/quat-transformation-inl.h: In instantiation of ‘[01m[Kkindr::minimal::QuatTransformationTemplate<Scalar>::QuatTransformationTemplate(const kindr::minimal::RotationQuaternionTemplate<Scalar>&, const Position&) [with Scalar = float; kindr::minimal::QuatTransformationTemplate<Scalar>::Position = Eigen::Matrix<float, 3, 1>][m[K’:
+[01m[K/home/super/uestc-gbplanner/src/misc/minkindr_ros/minkindr_conversions/include/minkindr_conversions/kindr_xml.h:51:28:[m[K   required from ‘[01m[Kvoid kindr::minimal::xmlRpcToKindr(XmlRpc::XmlRpcValue&, kindr::minimal::QuatTransformationTemplate<Scalar>*) [with Scalar = float][m[K’
+[01m[K/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_ros/src/voxblox_eval.cc:93:53:[m[K   required from here
+[01m[K/home/super/uestc-gbplanner/src/misc/minkindr/minkindr/include/kindr/minimal/implementation/quat-transformation-inl.h:41:21:[m[K [01;35m[Kwarning: [m[Kimplicitly-declared ‘[01m[Kkindr::minimal::RotationQuaternionTemplate<float>::RotationQuaternionTemplate(const kindr::minimal::RotationQuaternionTemplate<float>&)[m[K’ is deprecated [[01;35m[K-Wdeprecated-copy[m[K]
+   41 |     A_t_A_B_(A_t_A_B[01;35m[K)[m[K {
+      |                     [01;35m[K^[m[K
+In file included from [01m[K/home/super/uestc-gbplanner/src/misc/minkindr/minkindr/include/kindr/minimal/rotation-quaternion.h:235[m[K,
+                 from [01m[K/home/super/uestc-gbplanner/src/misc/minkindr/minkindr/include/kindr/minimal/quat-transformation.h:28[m[K,
+                 from [01m[K/home/super/uestc-gbplanner/src/misc/minkindr_ros/minkindr_conversions/include/minkindr_conversions/kindr_msg.h:10[m[K,
+                 from [01m[K/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_ros/src/voxblox_eval.cc:1[m[K:
+[01m[K/home/super/uestc-gbplanner/src/misc/minkindr/minkindr/include/kindr/minimal/implementation/rotation-quaternion-inl.h:184:1:[m[K [01;36m[Knote: [m[Kbecause ‘[01m[Kkindr::minimal::RotationQuaternionTemplate<float>[m[K’ has user-provided ‘[01m[Kkindr::minimal::RotationQuaternionTemplate<Scalar>& kindr::minimal::RotationQuaternionTemplate<Scalar>::operator=(const kindr::minimal::RotationQuaternionTemplate<Scalar>&) [with Scalar = float][m[K’
+  184 | [01;36m[KRotationQuaternionTemplate<Scalar>[m[K::operator=(
+      | [01;36m[K^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K

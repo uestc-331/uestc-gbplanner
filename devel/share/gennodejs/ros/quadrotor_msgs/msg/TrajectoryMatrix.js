@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/quadrotor_msgs/share/gennodejs/ros/quadrotor_msgs/msg/TrajectoryMatrix.js

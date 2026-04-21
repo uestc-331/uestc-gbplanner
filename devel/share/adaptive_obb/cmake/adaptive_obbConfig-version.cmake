@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/adaptive_obb/share/adaptive_obb/cmake/adaptive_obbConfig-version.cmake

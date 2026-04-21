@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/minkindr/share/minkindr/cmake/minkindrConfig-version.cmake

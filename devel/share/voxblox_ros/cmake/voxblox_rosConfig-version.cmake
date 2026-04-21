@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/voxblox_ros/share/voxblox_ros/cmake/voxblox_rosConfig-version.cmake

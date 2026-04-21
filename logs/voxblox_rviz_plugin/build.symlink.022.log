@@ -1,0 +1,4 @@
+Symlinking /home/super/uestc-gbplanner/devel/share/voxblox_rviz_plugin/cmake/voxblox_rviz_pluginConfig.cmake
+Symlinking /home/super/uestc-gbplanner/devel/share/voxblox_rviz_plugin/cmake/voxblox_rviz_pluginConfig-version.cmake
+Symlinking /home/super/uestc-gbplanner/devel/lib/libvoxblox_rviz_plugin.so
+Symlinking /home/super/uestc-gbplanner/devel/lib/pkgconfig/voxblox_rviz_plugin.pc

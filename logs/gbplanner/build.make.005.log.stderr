@@ -1,0 +1,59 @@
+In file included from [01m[K/opt/ros/noetic/include/ros/ros.h:40[m[K,
+                 from [01m[K/opt/ros/noetic/include/pcl_conversions/pcl_conversions.h:42[m[K,
+                 from [01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/include/gbplanner/rrg.h:24[m[K,
+                 from [01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:1[m[K:
+[01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:[m[K In member function ‘[01m[Kexplorer::Rrg::GraphStatus explorer::Rrg::buildGraph()[m[K’:
+[01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:1067:17:[m[K [01;35m[Kwarning: [m[Kformat ‘[01m[K%d[m[K’ expects argument of type ‘[01m[Kint[m[K’, but argument 10 has type ‘[01m[Kdouble[m[K’ [[01;35m[K-Wformat=[m[K]
+ 1067 |                 [01;35m[K"[RRG] Planning params: max_vertices=%d, max_edges=%d, max_loops=%d"[m[K,
+      |                 [01;35m[K^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+ 1068 |                 planning_num_vertices_max_, planning_num_edges_max_, [32m[Kplanning_params_.num_loops_max[m[K);
+      |                                                                      [32m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+      |                                                                                       [32m[K|[m[K
+      |                                                                                       [32m[Kdouble[m[K
+[01m[K/opt/ros/noetic/include/ros/console.h:351:165:[m[K [01;36m[Knote: [m[Kin definition of macro ‘[01m[KROSCONSOLE_PRINT_AT_LOCATION_WITH_FILTER[m[K’
+  351 |     ::ros::console::print(filter, __rosconsole_define_location__loc.logger_, __rosconsole_define_location__loc.level_, __FILE__, __LINE__, __ROSCONSOLE_FUNCTION__, [01;36m[K__VA_ARGS__[m[K)
+      |                                                                                                                                                                     [01;36m[K^~~~~~~~~~~[m[K
+[01m[K/opt/ros/noetic/include/ros/console.h:390:7:[m[K [01;36m[Knote: [m[Kin expansion of macro ‘[01m[KROSCONSOLE_PRINT_AT_LOCATION[m[K’
+  390 |       [01;36m[KROSCONSOLE_PRINT_AT_LOCATION[m[K(__VA_ARGS__); \
+      |       [01;36m[K^~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/opt/ros/noetic/include/rosconsole/macros_generated.h:114:34:[m[K [01;36m[Knote: [m[Kin expansion of macro ‘[01m[KROS_LOG_COND[m[K’
+  114 | #define ROS_INFO_COND(cond, ...) [01;36m[KROS_LOG_COND[m[K(cond, ::ros::console::levels::Info, ROSCONSOLE_DEFAULT_NAME, __VA_ARGS__)
+      |                                  [01;36m[K^~~~~~~~~~~~[m[K
+[01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:1066:3:[m[K [01;36m[Knote: [m[Kin expansion of macro ‘[01m[KROS_INFO_COND[m[K’
+ 1066 |   [01;36m[KROS_INFO_COND[m[K(global_verbosity >= Verbosity::INFO,
+      |   [01;36m[K^~~~~~~~~~~~~[m[K
+[01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:1067:83:[m[K [01;36m[Knote: [m[Kformat string is defined here
+ 1067 |                 "[RRG] Planning params: max_vertices=%d, max_edges=%d, max_loops=[01;36m[K%d[m[K",
+      |                                                                                  [01;36m[K~^[m[K
+      |                                                                                   [01;36m[K|[m[K
+      |                                                                                   [01;36m[Kint[m[K
+      |                                                                                  [32m[K%f[m[K
+In file included from [01m[K/opt/ros/noetic/include/ros/ros.h:40[m[K,
+                 from [01m[K/opt/ros/noetic/include/pcl_conversions/pcl_conversions.h:42[m[K,
+                 from [01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/include/gbplanner/rrg.h:24[m[K,
+                 from [01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:1[m[K:
+[01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:1149:17:[m[K [01;35m[Kwarning: [m[Kformat ‘[01m[K%d[m[K’ expects argument of type ‘[01m[Kint[m[K’, but argument 8 has type ‘[01m[Kdouble[m[K’ [[01;35m[K-Wformat=[m[K]
+ 1149 |                 [01;35m[K"[RRG] Starting graph building loop (max_loops=%d, max_vertices=%d, max_edges=%d)"[m[K,
+      |                 [01;35m[K^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+ 1150 |                 [32m[Kplanning_params_.num_loops_max[m[K, planning_num_vertices_max_, planning_num_edges_max_);
+      |                 [32m[K~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+      |                                  [32m[K|[m[K
+      |                                  [32m[Kdouble[m[K
+[01m[K/opt/ros/noetic/include/ros/console.h:351:165:[m[K [01;36m[Knote: [m[Kin definition of macro ‘[01m[KROSCONSOLE_PRINT_AT_LOCATION_WITH_FILTER[m[K’
+  351 |     ::ros::console::print(filter, __rosconsole_define_location__loc.logger_, __rosconsole_define_location__loc.level_, __FILE__, __LINE__, __ROSCONSOLE_FUNCTION__, [01;36m[K__VA_ARGS__[m[K)
+      |                                                                                                                                                                     [01;36m[K^~~~~~~~~~~[m[K
+[01m[K/opt/ros/noetic/include/ros/console.h:390:7:[m[K [01;36m[Knote: [m[Kin expansion of macro ‘[01m[KROSCONSOLE_PRINT_AT_LOCATION[m[K’
+  390 |       [01;36m[KROSCONSOLE_PRINT_AT_LOCATION[m[K(__VA_ARGS__); \
+      |       [01;36m[K^~~~~~~~~~~~~~~~~~~~~~~~~~~~[m[K
+[01m[K/opt/ros/noetic/include/rosconsole/macros_generated.h:114:34:[m[K [01;36m[Knote: [m[Kin expansion of macro ‘[01m[KROS_LOG_COND[m[K’
+  114 | #define ROS_INFO_COND(cond, ...) [01;36m[KROS_LOG_COND[m[K(cond, ::ros::console::levels::Info, ROSCONSOLE_DEFAULT_NAME, __VA_ARGS__)
+      |                                  [01;36m[K^~~~~~~~~~~~[m[K
+[01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:1148:3:[m[K [01;36m[Knote: [m[Kin expansion of macro ‘[01m[KROS_INFO_COND[m[K’
+ 1148 |   [01;36m[KROS_INFO_COND[m[K(global_verbosity >= Verbosity::INFO,
+      |   [01;36m[K^~~~~~~~~~~~~[m[K
+[01m[K/root/wjh/uestc-gbplanner/src/exploration/gbplanner_ros/gbplanner/src/rrg.cpp:1149:65:[m[K [01;36m[Knote: [m[Kformat string is defined here
+ 1149 |                 "[RRG] Starting graph building loop (max_loops=[01;36m[K%d[m[K, max_vertices=%d, max_edges=%d)",
+      |                                                                [01;36m[K~^[m[K
+      |                                                                 [01;36m[K|[m[K
+      |                                                                 [01;36m[Kint[m[K
+      |                                                                [32m[K%f[m[K

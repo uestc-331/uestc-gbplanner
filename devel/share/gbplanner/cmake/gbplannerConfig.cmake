@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/gbplanner/share/gbplanner/cmake/gbplannerConfig.cmake

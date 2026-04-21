@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/install
+
+Name: gbplanner
+Description: Description of gbplanner
+Version: 0.0.0
+Cflags: -I${prefix}/include
+Libs: -L${prefix}/lib -lgbplanner
+Requires: roscpp cv_bridge tf message_generation geometry_msgs visualization_msgs kdtree voxblox_ros planner_common planner_msgs planner_semantic_msgs adaptive_obb pcl_ros trajectory_msgs quadrotor_msgs

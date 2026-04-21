@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/gbplanner_ui/share/gbplanner_ui/cmake/gbplanner_uiConfig-version.cmake

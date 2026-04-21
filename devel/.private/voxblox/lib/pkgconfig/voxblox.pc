@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/voxblox
+
+Name: voxblox
+Description: Description of voxblox
+Version: 0.0.0
+Cflags: -I/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox/include -I/home/super/uestc-gbplanner/build/voxblox
+Libs: -L${prefix}/lib -lvoxblox_proto -lvoxblox
+Requires: eigen_catkin eigen_checks gflags_catkin glog_catkin minkindr protobuf_catkin

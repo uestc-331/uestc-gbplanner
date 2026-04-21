@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/minkindr_conversions
+
+Name: minkindr_conversions
+Description: Description of minkindr_conversions
+Version: 0.0.0
+Cflags: -I/home/super/uestc-gbplanner/src/misc/minkindr_ros/minkindr_conversions/include
+Libs: -L${prefix}/lib 
+Requires: eigen_conversions geometry_msgs glog_catkin gflags_catkin minkindr tf tf_conversions

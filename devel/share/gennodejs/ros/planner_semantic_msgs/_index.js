@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/planner_semantic_msgs/share/gennodejs/ros/planner_semantic_msgs/_index.js

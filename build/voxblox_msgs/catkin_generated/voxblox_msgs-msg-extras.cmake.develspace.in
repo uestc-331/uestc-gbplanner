@@ -1,0 +1,2 @@
+set(voxblox_msgs_MESSAGE_FILES "/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_msgs/msg/Block.msg;/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_msgs/msg/Layer.msg;/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_msgs/msg/Mesh.msg;/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_msgs/msg/MeshBlock.msg;/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_msgs/msg/VoxelEvaluationDetails.msg")
+set(voxblox_msgs_SERVICE_FILES "/home/super/uestc-gbplanner/src/mapping/voxblox/voxblox_msgs/srv/FilePath.srv")

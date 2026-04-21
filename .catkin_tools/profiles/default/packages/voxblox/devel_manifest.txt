@@ -1,0 +1,9 @@
+mapping/voxblox/voxblox
+/home/super/uestc-gbplanner/devel/.private/voxblox/share/voxblox/cmake/voxblox-extras.cmake /home/super/uestc-gbplanner/devel/share/voxblox/cmake/voxblox-extras.cmake
+/home/super/uestc-gbplanner/devel/.private/voxblox/share/voxblox/cmake/voxbloxConfig.cmake /home/super/uestc-gbplanner/devel/share/voxblox/cmake/voxbloxConfig.cmake
+/home/super/uestc-gbplanner/devel/.private/voxblox/share/voxblox/cmake/voxbloxConfig-version.cmake /home/super/uestc-gbplanner/devel/share/voxblox/cmake/voxbloxConfig-version.cmake
+/home/super/uestc-gbplanner/devel/.private/voxblox/lib/libvoxblox.so /home/super/uestc-gbplanner/devel/lib/libvoxblox.so
+/home/super/uestc-gbplanner/devel/.private/voxblox/lib/libvoxblox_proto.so /home/super/uestc-gbplanner/devel/lib/libvoxblox_proto.so
+/home/super/uestc-gbplanner/devel/.private/voxblox/lib/pkgconfig/voxblox.pc /home/super/uestc-gbplanner/devel/lib/pkgconfig/voxblox.pc
+/home/super/uestc-gbplanner/devel/.private/voxblox/lib/voxblox/tsdf_to_esdf /home/super/uestc-gbplanner/devel/lib/voxblox/tsdf_to_esdf
+/home/super/uestc-gbplanner/devel/.private/voxblox/lib/voxblox/test_load_esdf /home/super/uestc-gbplanner/devel/lib/voxblox/test_load_esdf

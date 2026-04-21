@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/adaptive_obb
+
+Name: adaptive_obb
+Description: Description of adaptive_obb
+Version: 1.0.0
+Cflags: -I/home/super/uestc-gbplanner/src/exploration/adaptive_obb_ros/adaptive_obb/include
+Libs: -L${prefix}/lib -ladaptive_obb
+Requires: pcl_conversions pcl_ros planner_common roscpp

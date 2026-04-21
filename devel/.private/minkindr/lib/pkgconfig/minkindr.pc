@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/minkindr
+
+Name: minkindr
+Description: Description of minkindr
+Version: 0.0.1
+Cflags: -I/home/super/uestc-gbplanner/src/misc/minkindr/minkindr/include
+Libs: -L${prefix}/lib 
+Requires: 

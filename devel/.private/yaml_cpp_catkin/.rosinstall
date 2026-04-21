@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/super/uestc-gbplanner/devel/.private/yaml_cpp_catkin/setup.sh

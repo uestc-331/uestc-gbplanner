@@ -1,0 +1,9 @@
+Symlinking /home/super/uestc-gbplanner/devel/share/gbplanner/cmake/gbplannerConfig.cmake
+Symlinking /home/super/uestc-gbplanner/devel/share/gbplanner/cmake/gbplannerConfig-version.cmake
+Symlinking /home/super/uestc-gbplanner/devel/lib/libgbplanner.so
+Symlinking /home/super/uestc-gbplanner/devel/lib/pkgconfig/gbplanner.pc
+Symlinking /home/super/uestc-gbplanner/devel/lib/gbplanner/odom_to_tf_node
+Symlinking /home/super/uestc-gbplanner/devel/lib/gbplanner/pointcloud_real_robot_converter_node
+Symlinking /home/super/uestc-gbplanner/devel/lib/gbplanner/gbplanner_node
+Symlinking /home/super/uestc-gbplanner/devel/lib/gbplanner/pointcloud_frame_fixer_node
+Symlinking /home/super/uestc-gbplanner/devel/lib/gbplanner/traj_server_node

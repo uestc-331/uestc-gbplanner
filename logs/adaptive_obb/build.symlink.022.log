@@ -1,0 +1,4 @@
+Symlinking /home/super/uestc-gbplanner/devel/share/adaptive_obb/cmake/adaptive_obbConfig.cmake
+Symlinking /home/super/uestc-gbplanner/devel/share/adaptive_obb/cmake/adaptive_obbConfig-version.cmake
+Symlinking /home/super/uestc-gbplanner/devel/lib/libadaptive_obb.so
+Symlinking /home/super/uestc-gbplanner/devel/lib/pkgconfig/adaptive_obb.pc

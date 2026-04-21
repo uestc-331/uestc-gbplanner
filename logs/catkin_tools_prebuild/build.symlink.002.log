@@ -1,0 +1,47 @@
+Symlinking /home/super/uestc-gbplanner/devel/./local_setup.bash
+Symlinking /home/super/uestc-gbplanner/devel/./setup.bash
+Symlinking /home/super/uestc-gbplanner/devel/./setup.sh
+Symlinking /home/super/uestc-gbplanner/devel/./setup.zsh
+Symlinking /home/super/uestc-gbplanner/devel/./setup.fish
+Symlinking /home/super/uestc-gbplanner/devel/./env.sh
+Symlinking /home/super/uestc-gbplanner/devel/./_setup_util.py
+Symlinking /home/super/uestc-gbplanner/devel/./local_setup.sh
+Symlinking /home/super/uestc-gbplanner/devel/./local_setup.zsh
+Symlinking /home/super/uestc-gbplanner/devel/./local_setup.fish
+Symlinking /home/super/uestc-gbplanner/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig.cmake
+Symlinking /home/super/uestc-gbplanner/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig-version.cmake
+Symlinking /home/super/uestc-gbplanner/devel/lib/pkgconfig/catkin_tools_prebuild.pc
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/local_setup.zsh, /root/wjh/uestc-gbplanner/devel/./local_setup.zsh)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/local_setup.bash, /root/wjh/uestc-gbplanner/devel/./local_setup.bash)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/env.sh, /root/wjh/uestc-gbplanner/devel/./env.sh)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/setup.bash, /root/wjh/uestc-gbplanner/devel/./setup.bash)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/setup.zsh, /root/wjh/uestc-gbplanner/devel/./setup.zsh)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/_setup_util.py, /root/wjh/uestc-gbplanner/devel/./_setup_util.py)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/local_setup.sh, /root/wjh/uestc-gbplanner/devel/./local_setup.sh)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/setup.sh, /root/wjh/uestc-gbplanner/devel/./setup.sh)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/cmake.lock, /root/wjh/uestc-gbplanner/devel/./cmake.lock)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig.cmake, /root/wjh/uestc-gbplanner/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig.cmake)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig-version.cmake, /root/wjh/uestc-gbplanner/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig-version.cmake)
+Cleaning: (/root/wjh/uestc-gbplanner/devel/.private/catkin_tools_prebuild/lib/pkgconfig/catkin_tools_prebuild.pc, /root/wjh/uestc-gbplanner/devel/lib/pkgconfig/catkin_tools_prebuild.pc)
+Unlinking: /root/wjh/uestc-gbplanner/devel/./local_setup.zsh
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/./local_setup.bash
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/./env.sh
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/./setup.bash
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/./setup.zsh
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/./_setup_util.py
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/./local_setup.sh
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/./setup.sh
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig.cmake
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/share/catkin_tools_prebuild/cmake/catkin_tools_prebuildConfig-version.cmake
+Already unlinked: {}
+Unlinking: /root/wjh/uestc-gbplanner/devel/lib/pkgconfig/catkin_tools_prebuild.pc
+Already unlinked: {}

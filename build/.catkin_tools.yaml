@@ -1,0 +1,6 @@
+devel_space: /home/super/uestc-gbplanner/devel
+install: false
+install_space: /home/super/uestc-gbplanner/install
+profile: default
+source_space: /home/super/uestc-gbplanner/src
+workspace: /home/super/uestc-gbplanner

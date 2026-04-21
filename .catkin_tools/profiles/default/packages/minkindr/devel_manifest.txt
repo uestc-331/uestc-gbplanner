@@ -1,0 +1,4 @@
+misc/minkindr/minkindr
+/home/super/uestc-gbplanner/devel/.private/minkindr/share/minkindr/cmake/minkindrConfig.cmake /home/super/uestc-gbplanner/devel/share/minkindr/cmake/minkindrConfig.cmake
+/home/super/uestc-gbplanner/devel/.private/minkindr/share/minkindr/cmake/minkindrConfig-version.cmake /home/super/uestc-gbplanner/devel/share/minkindr/cmake/minkindrConfig-version.cmake
+/home/super/uestc-gbplanner/devel/.private/minkindr/lib/pkgconfig/minkindr.pc /home/super/uestc-gbplanner/devel/lib/pkgconfig/minkindr.pc

@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/voxblox_msgs/share/gennodejs/ros/voxblox_msgs/msg/Mesh.js

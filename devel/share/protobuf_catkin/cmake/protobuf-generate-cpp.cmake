@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/protobuf_catkin/share/protobuf_catkin/cmake/protobuf-generate-cpp.cmake

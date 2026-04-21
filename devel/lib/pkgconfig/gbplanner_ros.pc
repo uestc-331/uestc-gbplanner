@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/gbplanner_ros/lib/pkgconfig/gbplanner_ros.pc

@@ -1,0 +1,6 @@
+[ 12%] [34m[1mAutomatic MOC for target gbplanner_cli[0m
+[ 25%] [34m[1mAutomatic MOC for target gbplanner_ui[0m
+[ 25%] Built target gbplanner_ui_autogen
+[ 25%] Built target gbplanner_cli_autogen
+[ 62%] Built target gbplanner_cli
+[100%] Built target gbplanner_ui

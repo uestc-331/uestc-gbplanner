@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/planner_control_interface
+
+Name: planner_control_interface
+Description: Description of planner_control_interface
+Version: 0.0.0
+Cflags: -I/home/super/uestc-gbplanner/src/exploration/gbplanner_ros/planner_control_interface/include
+Libs: -L${prefix}/lib -lplanner_control_interface
+Requires: roscpp tf planner_msgs planner_semantic_msgs interactive_markers std_srvs

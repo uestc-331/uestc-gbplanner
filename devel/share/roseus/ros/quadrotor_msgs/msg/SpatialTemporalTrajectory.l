@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/quadrotor_msgs/share/roseus/ros/quadrotor_msgs/msg/SpatialTemporalTrajectory.l

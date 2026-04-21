@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/planner_control_interface/lib/pkgconfig/planner_control_interface.pc

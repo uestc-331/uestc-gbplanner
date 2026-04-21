@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/mav_msgs/share/roseus/ros/mav_msgs/msg/RollPitchYawrateThrust.l

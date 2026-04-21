@@ -1,0 +1,17 @@
+<launch>
+
+  <env name="ROS_MASTER_URI" value="http:172.168.7.160:11311" />
+
+  <env name="ROS_IP" value="172.168.7.71" /> 
+  
+  <!-- 启动RViz -->
+  <node pkg="rviz" type="rviz" name="gbplanner_ui" output="screen" 
+        args="-d $(find gbplanner)/config/rviz/rmf_obelix.rviz">
+    <param name="fixed_frame" value="world" />
+  </node>
+
+  <!-- 可选：启动rqt用于服务调用 -->
+  <node pkg="rqt_gui" type="rqt_gui" name="rqt_gui" 
+        args="--perspective-file $(find gbplanner)/config/rviz/gbplanner.perspective">
+  </node>
+</launch>

@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/install
+
+Name: pci_general
+Description: Description of pci_general
+Version: 0.0.0
+Cflags: -I${prefix}/include
+Libs: -L${prefix}/lib -lpci_general
+Requires: planner_control_interface actionlib actionlib_msgs mav_msgs planner_msgs geometry_msgs

@@ -1,0 +1,8 @@
+prefix=/home/super/uestc-gbplanner/devel/.private/kdtree
+
+Name: kdtree
+Description: Description of kdtree
+Version: 0.0.0
+Cflags: -I/home/super/uestc-gbplanner/src/exploration/gbplanner_ros/kdtree/include
+Libs: -L${prefix}/lib -lkdtree
+Requires: 

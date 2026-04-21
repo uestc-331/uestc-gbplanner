@@ -1,0 +1,82 @@
+CMake Error at gflags_src-stamp/download-gflags_src.cmake:159 (message):
+  Each download failed!
+
+    error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         error: downloading 'https://github.com/gflags/gflags/archive/v2.2.1.zip' failed
+         status_code: 6
+         status_string: "Couldn't resolve host name"
+         log:
+         --- LOG BEGIN ---
+         Could not resolve host: github.com
+
+  Closing connection 0
+
+  
+
+         --- LOG END ---
+         
+    
+
+
+make[2]: *** [CMakeFiles/gflags_src.dir/build.make:91：gflags_src-prefix/src/gflags_src-stamp/gflags_src-download] 错误 1
+make[1]: *** [CMakeFiles/Makefile2:196：CMakeFiles/gflags_src.dir/all] 错误 2
+make: *** [Makefile:141：all] 错误 2

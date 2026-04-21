@@ -1,0 +1,1 @@
+/home/super/uestc-gbplanner/devel/.private/gbplanner_ros/share/gbplanner_ros/cmake/gbplanner_rosConfig.cmake

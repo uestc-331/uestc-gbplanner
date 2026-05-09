@@ -1,0 +1,2 @@
+Ignored in this workspace because this is an optional SMB metapackage with
+dependencies that are not present in the current PX4 exploration environment.

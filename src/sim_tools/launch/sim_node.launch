@@ -1,0 +1,9 @@
+<launch>
+
+  <node pkg="sim_tools" name="sim_odom_node" type="sim_odom_node" output="screen">
+    <remap from="sim_odom" to="/vins_fusion/imu_propagate"/>
+  </node>
+
+ 
+
+</launch>

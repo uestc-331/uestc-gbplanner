@@ -1,0 +1,47 @@
+# Catkin / build artifacts
+build/
+devel/
+install/
+logs/
+.catkin_tools/
+
+# Local tool and editor state
+.codex/
+.cache/
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# ROS runtime recordings
+*.bag
+*.bag.active
+
+# Local archives and backups
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.orig
+
+# Generic generated binaries
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+
+# Large simulation assets that exceed or approach GitHub's normal file limit.
+# Use Git LFS or external storage if these assets must be shared.
+src/sim/subt_cave_sim/models/megacavern/2/meshes/megacaverns.dae
+src/sim/subt_cave_sim/models/niosh_seg01/meshes/nioshseg01.dae
+src/sim/rotors_simulator/rotors_description/meshes/m100/m100.dae
+src/sim/rotors_simulator/rotors_description/meshes/m100/m100.dae.orig

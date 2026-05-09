@@ -1,0 +1,91 @@
+# 下面的指令用于选择平时debug模式和比赛自动切换飞行模式：
+# 1 for debug模式，2 for 比赛自动切换飞行模式
+travel_task/fly_mode: 1
+travel_task/takeoff_height: 1.5
+# <!-- 如果手动输入参考点，在下面填写 -->
+# <!-- travel_task/ref_pos_type,1代表订阅获取,2代表手动获取 -->
+travel_task/ref_pos_type: 2
+# <!-- 圈的数量 -->
+
+# x(m)  y(m)  z(m)
+# 4.00  2.20  1.50
+# 8.00  2.60  1.80
+# 18.10 2.70  3.50
+# 23.00 5.00  3.50
+# 18.10 8.00  3.50
+# 10.30 5.00  2.10
+# 21.80 2.20  1.50
+# 21.00 7.80  1.50
+# 11.00 7.80  1.50 
+# 8.50  7.80  1.50
+# 4.00  7.80  1.00  
+# 动态  动态  动态
+
+travel/circle_count: 11
+
+travel/ref_point0_x: 3.5
+travel/ref_point0_y: 0.2
+travel/ref_point0_z: 1.4
+travel/ref_point0_yaw: 0.0
+travel/ref_point0_type: 10
+
+travel/ref_point1_x: 7.5
+travel/ref_point1_y: 0.6
+travel/ref_point1_z: 1.7
+travel/ref_point1_yaw: 0.0
+travel/ref_point1_type: 10
+
+travel/ref_point2_x: 17.6
+travel/ref_point2_y: 0.7
+travel/ref_point2_z: 3.4
+travel/ref_point2_yaw: 0.0
+travel/ref_point2_type: 11
+
+travel/ref_point3_x: 22.5
+travel/ref_point3_y: 3.0
+travel/ref_point3_z: 3.55
+travel/ref_point3_yaw: 1.57
+travel/ref_point3_type: 11
+
+travel/ref_point4_x: 17.6
+travel/ref_point4_y: 6.0
+travel/ref_point4_z: 3.4
+travel/ref_point4_yaw: 3.14
+travel/ref_point4_type: 11
+
+travel/ref_point5_x: 9.8
+travel/ref_point5_y: 3.0
+travel/ref_point5_z: 1.6
+# travel/ref_point5_z: 3.4
+travel/ref_point5_yaw: -1.57
+travel/ref_point5_type: 12
+
+travel/ref_point6_x: 21.3
+travel/ref_point6_y: 0.2
+travel/ref_point6_z: 1.7
+travel/ref_point6_yaw: 0
+travel/ref_point6_type: 10
+
+travel/ref_point7_x: 20.5
+travel/ref_point7_y: 5.8
+travel/ref_point7_z: 1.7
+travel/ref_point7_yaw: 3.14
+travel/ref_point7_type: 10
+
+travel/ref_point8_x: 10.5
+travel/ref_point8_y: 8.0
+travel/ref_point8_z: 1.7
+travel/ref_point8_yaw: 3.14
+travel/ref_point8_type: 10
+
+travel/ref_point9_x: 8.0
+travel/ref_point9_y: 8.0
+travel/ref_point9_z: 1.7
+travel/ref_point9_yaw: 3.14
+travel/ref_point9_type: 12
+
+travel/ref_point10_x: 0.8
+travel/ref_point10_y: 8.0
+travel/ref_point10_z: 0.0
+travel/ref_point10_yaw: 3.14
+travel/ref_point10_type: 10

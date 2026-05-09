@@ -1,0 +1,2 @@
+Duplicate package name with `src/sim/quadrotor_msgs`.
+Keep the superset package under `src/sim/quadrotor_msgs` for this workspace.

@@ -1,0 +1,21 @@
+<launch>
+
+  <arg name="ref_points_topic" value="/travel/ref_point_sub"/>
+
+  <node pkg="uav_control" name="uav_control_node" type="uav_control_node" output="screen">
+    <remap from="/camera/color/image_raw" to="/solo_0/realsense/depth_camera/color/image_raw"/>
+    <remap from="/ref_point_topic" to="$(arg ref_points_topic)"/>
+    <rosparam command="load" file="$(find uav_control)/config/circle_setting.yaml" />
+  </node>
+
+  <node pkg="uav_control" name="ref_pose_node" type="ref_pose_node" output="screen">
+      <!-- 如果通过订阅方式获取参考点，需要输入订阅的话题名称 -->
+      <remap from="/ref_point_topic" to="$(arg ref_points_topic)"/>
+      <rosparam command="load" file="$(find uav_control)/config/circle_setting.yaml" />
+  </node>
+
+  <node pkg="uav_control" name="sim_odom_node" type="sim_odom_node" output="screen">
+  </node>
+  
+
+</launch>

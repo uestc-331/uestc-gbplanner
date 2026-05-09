@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="sim_tools" name="sim_remote_node" type="sim_remote.py" output="screen">
+        <remap from="mavros/rc/in" to="/iris_0/mavros/rc/in" />
+        
+    </node>
+    
+
+
+
+</launch>

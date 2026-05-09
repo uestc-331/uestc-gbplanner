@@ -1,0 +1,2 @@
+Ignored in this workspace because the README1 PX4 exploration flow does not
+use the SMB Gazebo stack, and this environment does not provide twist_mux.

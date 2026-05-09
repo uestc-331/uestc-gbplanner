@@ -18,9 +18,15 @@ path_progression_dist_thr_min: 0.60
 path_progression_yaw_thr: 0.4
 path_progression_pitch_thr: 0.4
 stuck_detection_enable: true
-stuck_timeout: 8.0
+stuck_timeout: 4.0
 stuck_min_progress: 0.15
 stuck_dist_margin: 0.25
+distance_budget_enable: true
+distance_budget_limit: 50.0
+distance_budget_max_step: 2.0
+distance_budget_min_step: 0.01
+distance_budget_log_period: 1.0
+distance_budget_release_timeout: 3.0
 interpolate_traj: true
 use_time_from_start: true
 travel_backward: false

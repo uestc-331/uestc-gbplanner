@@ -1253,6 +1253,7 @@ bool Gbplanner::homingServiceCallback(
     ROS_WARN_COND(global_verbosity >= Verbosity::WARN, "The planner is not ready.");
     return false;
   }
+  rrg_->setBoundMode(BoundModeType::kExtendedBound);
   res.path = rrg_->getHomingPath(req.header.frame_id);
   return true;
 }

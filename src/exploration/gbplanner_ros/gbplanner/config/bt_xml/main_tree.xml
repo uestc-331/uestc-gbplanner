@@ -3,6 +3,7 @@
   <include path="./le_insp_opening.xml" />
   <include path="./le_opening.xml" />
   <include path="./lge_homing.xml" />
+  <include path="./homing.xml" />
   <include path="./active_homing.xml" />
   <include path="./lnav.xml" />
   <include path="./lge_homing_lnav.xml" />
@@ -15,7 +16,7 @@
           <AlwaysFailure/>
         </Sequence>
       </ReactiveFallback>
-      <SubTree ID="acthoming"/>
+      <SubTree ID="homing"/>
     </Sequence>
   </BehaviorTree>
 </root>

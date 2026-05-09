@@ -167,6 +167,19 @@ class PlannerControlInterface {
   geometry_msgs::Pose previous_pose_;
   std::string world_frame_id_;
 
+  bool distance_budget_enable_ = false;
+  double distance_budget_limit_ = 0.0;
+  double distance_budget_max_step_ = 2.0;
+  double distance_budget_min_step_ = 0.01;
+  double distance_budget_log_period_ = 1.0;
+  double distance_budget_release_timeout_ = 3.0;
+  double accumulated_exploration_distance_ = 0.0;
+  bool distance_budget_homing_latched_ = false;
+  ros::Time distance_budget_trigger_time_;
+  bool distance_budget_has_last_odom_ = false;
+  geometry_msgs::Point distance_budget_last_odom_position_;
+  ros::Time distance_budget_last_log_time_;
+
   void odometryCallback(const nav_msgs::Odometry& odo);
   void poseCallback(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void navGoalCallback(const geometry_msgs::PoseStamped& nav_msg);
@@ -174,6 +187,10 @@ class PlannerControlInterface {
   void setGoal(const geometry_msgs::PoseStamped& pose);
   void poseStampedCallback(const geometry_msgs::PoseStamped& pose);
   void processPose(const geometry_msgs::Pose& pose);
+  bool isDistanceBudgetCountingActive() const;
+  void resetDistanceBudgetTracking(const std::string& reason);
+  void updateDistanceBudgetFromOdom(const geometry_msgs::Point& position);
+  bool isDistanceBudgetReleaseTimedOut() const;
 
   bool setHomingPosCallback(planner_msgs::pci_set_homing_pos::Request& req,
                             planner_msgs::pci_set_homing_pos::Response& res);

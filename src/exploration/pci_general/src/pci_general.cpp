@@ -795,7 +795,9 @@ namespace explorer
       }
       else
       {
-        dist_thr = path_end_dist_thr_;
+        dist_thr = (current_path_type_ == ExecutionPathType::kHomingPath)
+                       ? homing_end_dist_thr_
+                       : path_end_dist_thr_;
       }
 
       double wp_dist = calculateDistance(current_pose_, executing_path_[path_waypoint_ind_]);
@@ -1437,6 +1439,13 @@ namespace explorer
     {
       path_end_dist_thr_ = 0.5;
       ROS_WARN_COND(param_verbosity >= Verbosity::WARN, "No path_end_dist_thr setting, setting it to %f (m).", path_end_dist_thr_);
+    }
+
+    param_name = ns + "/homing_end_dist_thr";
+    if (!ros::param::get(param_name, homing_end_dist_thr_))
+    {
+      homing_end_dist_thr_ = std::min(path_end_dist_thr_, 0.2);
+      ROS_WARN_COND(param_verbosity >= Verbosity::WARN, "No homing_end_dist_thr setting, setting it to %f (m).", homing_end_dist_thr_);
     }
 
     param_name = ns + "/path_end_yaw_thr";

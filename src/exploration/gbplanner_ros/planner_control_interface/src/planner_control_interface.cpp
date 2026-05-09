@@ -516,6 +516,7 @@ bool PlannerControlInterface::triggerCallback(
       ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                     "Switch to auto mode.");
       trigger_mode_ = PlannerTriggerModeType::kAuto;
+      resetDistanceBudgetTracking("AUTO start");
     }
     pci_manager_->setVelocity(req.vel_max);
     bound_mode_ = req.bound_mode;
@@ -609,6 +610,7 @@ bool PlannerControlInterface::init() {
   passing_gate_request_ = false;
   passing_gate_success_ = false;
   go_to_waypoint_request_ = false;
+  resetDistanceBudgetTracking("init");
   // Wait for the system is ready.
   // For example: checking odometry is ready.
   ros::Rate rr(1);
@@ -650,6 +652,7 @@ void PlannerControlInterface::run() {
       // Priority 1: Check if require homing.
       if (homing_request_) {
         homing_request_ = false;
+        run_en_ = false;
         trigger_mode_ = PlannerTriggerModeType::kManual;  // also unset auto
                                                           // mode
         ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
@@ -709,6 +712,24 @@ void PlannerControlInterface::run() {
             planner_iteration_);
       }
     } else if (pci_status == PCIManager::PCIStatus::kRunning) {
+      if (distance_budget_homing_latched_ && homing_request_) {
+        if (isDistanceBudgetReleaseTimedOut()) {
+          ROS_WARN_THROTTLE(
+              1.0,
+              "[PCI][DIST_BUDGET] release timeout reached; forcing homing "
+              "now accumulated=%.2f limit=%.2f timeout=%.2f",
+              accumulated_exploration_distance_, distance_budget_limit_,
+              distance_budget_release_timeout_);
+          current_path_.clear();
+          pci_manager_->setStatus(PCIManager::PCIStatus::kReady);
+          continue;
+        }
+        ROS_WARN_THROTTLE(
+            1.0,
+            "[PCI][DIST_BUDGET] homing pending; waiting for current path "
+            "to finish accumulated=%.2f limit=%.2f",
+            accumulated_exploration_distance_, distance_budget_limit_);
+      }
       ROS_INFO_THROTTLE(
           2.0,
           "[PCI][RUN] executing status=%s trigger=%s current_path=%zu iter=%d",
@@ -1191,8 +1212,154 @@ bool PlannerControlInterface::loadParams() {
                   world_frame_id_.c_str());
   }
 
+  ros::param::param(ns + "/distance_budget_enable",
+                    distance_budget_enable_, false);
+  ros::param::param(ns + "/distance_budget_limit",
+                    distance_budget_limit_, 0.0);
+  ros::param::param(ns + "/distance_budget_max_step",
+                    distance_budget_max_step_, 2.0);
+  ros::param::param(ns + "/distance_budget_min_step",
+                    distance_budget_min_step_, 0.01);
+  ros::param::param(ns + "/distance_budget_log_period",
+                    distance_budget_log_period_, 1.0);
+  ros::param::param(ns + "/distance_budget_release_timeout",
+                    distance_budget_release_timeout_, 3.0);
+
+  if (distance_budget_enable_ && distance_budget_limit_ <= 0.0) {
+    ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                  "[PCI][DIST_BUDGET] disabled because limit %.3f is not "
+                  "positive",
+                  distance_budget_limit_);
+    distance_budget_enable_ = false;
+  }
+  if (distance_budget_max_step_ <= 0.0) {
+    ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                  "[PCI][DIST_BUDGET] invalid max_step %.3f, using 2.0",
+                  distance_budget_max_step_);
+    distance_budget_max_step_ = 2.0;
+  }
+  if (distance_budget_min_step_ < 0.0) {
+    ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                  "[PCI][DIST_BUDGET] invalid min_step %.3f, using 0.0",
+                  distance_budget_min_step_);
+    distance_budget_min_step_ = 0.0;
+  }
+  if (distance_budget_min_step_ > distance_budget_max_step_) {
+    ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                  "[PCI][DIST_BUDGET] min_step %.3f > max_step %.3f, "
+                  "setting min_step to 0.0",
+                  distance_budget_min_step_, distance_budget_max_step_);
+    distance_budget_min_step_ = 0.0;
+  }
+  if (distance_budget_log_period_ < 0.0) {
+    distance_budget_log_period_ = 0.0;
+  }
+  if (distance_budget_release_timeout_ < 0.0) {
+    distance_budget_release_timeout_ = 0.0;
+  }
+  ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                "[PCI][DIST_BUDGET] config enable=%d limit=%.2f "
+                "min_step=%.3f max_step=%.3f log_period=%.2f "
+                "release_timeout=%.2f",
+                distance_budget_enable_, distance_budget_limit_,
+                distance_budget_min_step_, distance_budget_max_step_,
+                distance_budget_log_period_, distance_budget_release_timeout_);
+
   ROS_INFO_COND(global_verbosity >= Verbosity::INFO, "Done.");
   return true;
+}
+
+bool PlannerControlInterface::isDistanceBudgetCountingActive() const {
+  return distance_budget_enable_ &&
+         trigger_mode_ == PlannerTriggerModeType::kAuto &&
+         !distance_budget_homing_latched_;
+}
+
+bool PlannerControlInterface::isDistanceBudgetReleaseTimedOut() const {
+  if (!distance_budget_homing_latched_ ||
+      distance_budget_trigger_time_.toSec() <= 0.0 ||
+      distance_budget_release_timeout_ <= 0.0) {
+    return false;
+  }
+  return (ros::Time::now() - distance_budget_trigger_time_).toSec() >=
+         distance_budget_release_timeout_;
+}
+
+void PlannerControlInterface::resetDistanceBudgetTracking(
+    const std::string& reason) {
+  accumulated_exploration_distance_ = 0.0;
+  distance_budget_homing_latched_ = false;
+  distance_budget_trigger_time_ = ros::Time(0);
+  distance_budget_has_last_odom_ = false;
+  distance_budget_last_log_time_ = ros::Time(0);
+
+  if (distance_budget_enable_) {
+    ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                  "[PCI][DIST_BUDGET] reset reason=%s limit=%.2f",
+                  reason.c_str(), distance_budget_limit_);
+  }
+}
+
+void PlannerControlInterface::updateDistanceBudgetFromOdom(
+    const geometry_msgs::Point& position) {
+  if (!isDistanceBudgetCountingActive()) {
+    return;
+  }
+
+  if (!distance_budget_has_last_odom_) {
+    distance_budget_last_odom_position_ = position;
+    distance_budget_has_last_odom_ = true;
+    return;
+  }
+
+  Eigen::Vector3d prev(distance_budget_last_odom_position_.x,
+                       distance_budget_last_odom_position_.y,
+                       distance_budget_last_odom_position_.z);
+  Eigen::Vector3d curr(position.x, position.y, position.z);
+  const double step = (curr - prev).norm();
+  distance_budget_last_odom_position_ = position;
+
+  if (step > distance_budget_max_step_) {
+    ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                  "[PCI][DIST_BUDGET] ignore odom jump step=%.3f max=%.3f "
+                  "accumulated=%.2f limit=%.2f",
+                  step, distance_budget_max_step_,
+                  accumulated_exploration_distance_, distance_budget_limit_);
+    return;
+  }
+
+  if (step < distance_budget_min_step_) {
+    return;
+  }
+
+  accumulated_exploration_distance_ += step;
+
+  const ros::Time now = ros::Time::now();
+  if (distance_budget_log_period_ > 0.0 &&
+      (distance_budget_last_log_time_.toSec() == 0.0 ||
+       (now - distance_budget_last_log_time_).toSec() >=
+           distance_budget_log_period_)) {
+    ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                  "[PCI][DIST_BUDGET] accumulated=%.2f/%.2f step=%.3f "
+                  "trigger=AUTO",
+                  accumulated_exploration_distance_, distance_budget_limit_,
+                  step);
+    distance_budget_last_log_time_ = now;
+  }
+
+  if (accumulated_exploration_distance_ >= distance_budget_limit_) {
+    distance_budget_homing_latched_ = true;
+    distance_budget_trigger_time_ = ros::Time::now();
+    run_en_ = false;
+    exe_path_en_ = true;
+    homing_request_ = true;
+    ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                  "[PCI][DIST_BUDGET] trigger homing accumulated=%.2f "
+                  "limit=%.2f step=%.3f -> wait for current path to finish "
+                  "then run direct homing",
+                  accumulated_exploration_distance_, distance_budget_limit_,
+                  step);
+  }
 }
 
 void PlannerControlInterface::odometryCallback(const nav_msgs::Odometry& odo) {
@@ -1205,6 +1372,7 @@ void PlannerControlInterface::odometryCallback(const nav_msgs::Odometry& odo) {
   current_pose_.orientation.w = odo.pose.pose.orientation.w;
   pci_manager_->setState(current_pose_);
   pci_manager_->setCurrentVelocity(odo.twist.twist.linear);
+  updateDistanceBudgetFromOdom(current_pose_.position);
   if (!pose_is_ready_) {
     previous_pose_ = current_pose_;
   } else {

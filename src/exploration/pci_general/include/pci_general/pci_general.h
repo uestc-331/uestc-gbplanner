@@ -238,6 +238,7 @@ class PCIGeneral : public PCIManager {
   double dt_;
   double planner_trigger_lead_time_;
   double path_end_dist_thr_;
+  double homing_end_dist_thr_;
   double path_end_yaw_thr_;
   double path_end_dist_scale_;
   double path_progression_dist_thr_;

@@ -6,8 +6,8 @@
 RobotParams:
   type:               kAerialRobot
   # size:               [0.4, 0.0, 0.0] # Actual size of the robot in meters [x, y, z]
-  size:               [0.4, 0.4, 0.4] # Actual size of the robot in meters [x, y, z]
-  size_extension_min: [0.1, 0.1, 0.1] # minimum extension outside of robot size allowed to operate
+  size:               [0.35, 0.35, 0.35] # Actual size of the robot in meters [x, y, z]
+  size_extension_min: [0.15, 0.15, 0.15] # minimum extension outside of robot size allowed to operate
   size_extension:     [0.4, 0.4, 0.4] # maximum extension outside of the robot size
   center_offset:      [0.0, 0.0, 0.0]
   relax_ratio:        0.5 # Used to define an intermediate size between size_extension_min and size_extension for planning
@@ -68,8 +68,8 @@ CameraAnnotationParams:
 BoundedSpaceParams:
   Global:
     type:           kCuboid
-    min_val:        [-1.0, -60.0, -1.0]
-    max_val:        [29.0, 60.0, 3.0]
+    min_val:        [-60.0, -60.0, -1.0]
+    max_val:        [60.0, 60.0, 3.0]
   Local:
     type:           kCuboid
     # min_val:        [-7.5, -7.5, -7.0]
@@ -215,7 +215,8 @@ PlanningParams:
   clustering_radius: 0.8
   path_interpolation_distance: 0.5
   
-  time_budget_limit: 360 # seconds
+  time_budget_limit: 1000.0
+   # seconds
   auto_homing_enable: true
   go_home_if_fully_explored: true
 

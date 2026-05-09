@@ -5288,7 +5288,54 @@ std::vector<geometry_msgs::Pose> Rrg::getHomingPath(std::string tgt_frame) {
       return raw_check_path;
     }
     ROS_WARN(
-        "[RRG][HOMING] Raw homing path is also unsafe, returning empty path.");
+        "[RRG][HOMING] Raw homing path is also unsafe, trying emergency "
+        "fallbacks.");
+
+    const BoundModeType old_bound_mode = robot_params_.bound_mode;
+    auto compute_planning_size = [&](BoundModeType mode) {
+      robot_params_.bound_mode = mode;
+      Eigen::Vector3d planning_size;
+      robot_params_.getPlanningSize(planning_size);
+      return planning_size;
+    };
+
+    const Eigen::Vector3d exact_robot_size =
+        compute_planning_size(BoundModeType::kExactBound);
+    const Eigen::Vector3d min_robot_size =
+        compute_planning_size(BoundModeType::kMinBound);
+    robot_params_.bound_mode = old_bound_mode;
+
+    struct HomingFallbackCandidate {
+      const char* name;
+      Eigen::Vector3d size;
+      bool stop_at_unknown_voxel;
+    };
+
+    const std::vector<HomingFallbackCandidate> fallback_candidates = {
+        {"min/strict", min_robot_size, true},
+        {"exact/strict", exact_robot_size, true},
+        {"min/allow_unknown", min_robot_size, false},
+        {"exact/allow_unknown", exact_robot_size, false},
+    };
+
+    for (const auto& candidate : fallback_candidates) {
+      std::vector<geometry_msgs::Pose> candidate_path = raw_homing_path;
+      if (Trajectory::interpolatePath(candidate_path, kInterpolationDistance,
+                                      interp_path)) {
+        candidate_path = interp_path;
+      }
+      if (!candidate_path.empty() &&
+          isPathCollisionFree(candidate_path, candidate.size,
+                              candidate.stop_at_unknown_voxel)) {
+        ROS_WARN("[RRG][HOMING] Emergency fallback succeeded: %s",
+                 candidate.name);
+        visualization_->visualizeRefPath(candidate_path);
+        return candidate_path;
+      }
+    }
+
+    ROS_WARN(
+        "[RRG][HOMING] Emergency fallback failed too; returning empty path.");
     return std::vector<geometry_msgs::Pose>();
   }
 
@@ -9840,13 +9887,19 @@ void Rrg::setGlobalFrame(std::string frame_id) {
 
 bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
                               const Eigen::Vector3d& robot_size) {
+  return isPathCollisionFree(path, robot_size, true);
+}
+
+bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
+                              const Eigen::Vector3d& robot_size,
+                              bool stop_at_unknown_voxel) {
   if (path.empty()) return true;  // nothing to check
 
   Eigen::Vector3d voxel(path[0].position.x, path[0].position.y,
                         path[0].position.z);
   if (path.size() == 1) {
     if (VoxelStatus::kFree ==
-        map_manager_->getBoxStatus(voxel, robot_size, true)) {
+        map_manager_->getBoxStatus(voxel, robot_size, stop_at_unknown_voxel)) {
       return true;
     } else {
       return false;
@@ -9859,7 +9912,8 @@ bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
     Eigen::Vector3d end_point(path[i + 1].position.x, path[i + 1].position.y,
                               path[i + 1].position.z);
     if (VoxelStatus::kFree !=
-        map_manager_->getPathStatus(start_point, end_point, robot_size, true)) {
+        map_manager_->getPathStatus(start_point, end_point, robot_size,
+                                    stop_at_unknown_voxel)) {
       return false;
     }
   }

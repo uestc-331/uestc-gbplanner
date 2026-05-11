@@ -164,3 +164,5 @@ rostopic pub /wind_xtdrone geometry_msgs/Twist "{linear: {x: 15.0, y: 0.0, z: 0.
 - 已确认 `catkin build --summarize` 全量通过，当前可构建包为 78 个
 - `README1.md` 原先引用参考仓库路径，现已按当前 `uestc-gb3` 工作区修正
 - `rmf_sim.launch` 当前使用 `sim_tools/traj_server_node`，不再要求 `gbplanner` 包内重复构建同名节点
+
+## 8.实机

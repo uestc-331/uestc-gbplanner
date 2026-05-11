@@ -68,8 +68,8 @@ CameraAnnotationParams:
 BoundedSpaceParams:
   Global:
     type:           kCuboid
-    min_val:        [-60.0, -60.0, -1.0]
-    max_val:        [60.0, 60.0, 3.0]
+    min_val:        [-1.0, -60.0, -1.0]
+    max_val:        [30.0, 60.0, 3.0]
   Local:
     type:           kCuboid
     # min_val:        [-7.5, -7.5, -7.0]
@@ -193,7 +193,7 @@ PlanningParams:
   path_length_penalty: 0.07
   path_direction_penalty: 0.0
   occupied_voxel_gain: 0.0
-  free_voxel_gain:  0.0 # prefer directions towards more free voxels in case of the dead-end
+  free_voxel_gain:  2.0 # prefer directions towards more free voxels in case of the dead-end
   unknown_voxel_gain: 40.0
   path_history_penalty: 3.0
   path_history_size: 4
@@ -215,7 +215,7 @@ PlanningParams:
   clustering_radius: 0.8
   path_interpolation_distance: 0.5
   
-  time_budget_limit: 1000.0
+  time_budget_limit: 3600.0
    # seconds
   auto_homing_enable: true
   go_home_if_fully_explored: true

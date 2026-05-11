@@ -88,7 +88,7 @@ PlannerControlInterface::PlannerControlInterface(
       nh_.subscribe("pose", 1, &PlannerControlInterface::poseCallback, this);
   pose_stamped_sub_ = nh_.subscribe(
       "pose_stamped", 1, &PlannerControlInterface::poseStampedCallback, this);
-      
+
   pci_server_ =
       nh_.advertiseService("planner_control_interface_trigger",
                            &PlannerControlInterface::triggerCallback, this);
@@ -109,7 +109,7 @@ PlannerControlInterface::PlannerControlInterface(
   pci_initialization_server_ = nh_.advertiseService(
       "pci_initialization_trigger",
       &PlannerControlInterface::initializationCallback, this);
-  
+
   while (!(planner_client_ = nh.serviceClient<planner_msgs::planner_srv>(
                "planner_server", true))) {  // true for persistent
     ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
@@ -171,14 +171,14 @@ PlannerControlInterface::PlannerControlInterface(
   pci_passing_gate_server_ =
       nh_.advertiseService("planner_control_interface/std_srvs/pass_gate",
                            &PlannerControlInterface::passingGateCallback, this);
-  pci_inspection_srv_server_ = 
-      nh_.advertiseService("planner_control_interface/std_srvs/inspection_srv_trigger",
+  pci_inspection_srv_server_ = nh_.advertiseService(
+      "planner_control_interface/std_srvs/inspection_srv_trigger",
       &PlannerControlInterface::inspectionSrvCallback, this);
-  planner_inspection_srv_client_ =
-      nh.serviceClient<planner_msgs::planner_srv>("/gbplanner/get_inspection_path");
-  rotate_180_deg_server_ = 
-      nh_.advertiseService("pci_rotate_180_trigger",
-      &PlannerControlInterface::rotate180DegCallback, this);
+  planner_inspection_srv_client_ = nh.serviceClient<planner_msgs::planner_srv>(
+      "/gbplanner/get_inspection_path");
+  rotate_180_deg_server_ = nh_.advertiseService(
+      "pci_rotate_180_trigger", &PlannerControlInterface::rotate180DegCallback,
+      this);
 
   pci_std_global_last_specified_frontier_server_ = nh_.advertiseService(
       "planner_control_interface/std_srvs/replan_last_specified_frontier",
@@ -296,7 +296,7 @@ bool PlannerControlInterface::passingGateCallback(
 bool PlannerControlInterface::inspectionSrvCallback(
     std_srvs::Trigger::Request& req, std_srvs::Trigger::Response& res) {
   //
-  if(!inspection_srv_request_) {
+  if (!inspection_srv_request_) {
     inspection_srv_request_ = true;
     return true;
   } else {
@@ -310,8 +310,8 @@ void PlannerControlInterface::resetPlanner(bool preserve_auto_mode) {
   // Set back to manual mode, and stop all current requests.
   const bool keep_auto =
       preserve_auto_mode && trigger_mode_ == PlannerTriggerModeType::kAuto;
-  trigger_mode_ =
-      keep_auto ? PlannerTriggerModeType::kAuto : PlannerTriggerModeType::kManual;
+  trigger_mode_ = keep_auto ? PlannerTriggerModeType::kAuto
+                            : PlannerTriggerModeType::kManual;
   run_en_ = false;
   search_request_ = false;
   homing_request_ = false;
@@ -408,7 +408,8 @@ bool PlannerControlInterface::stopPlannerCallback(
   // planner_set_trigger_mode_client_.call(planning_mode_srv);
 
   res.success = true;
-  ROS_WARN_COND(global_verbosity >= Verbosity::PLANNER_STATUS, "[PCI] STOP PLANNER.");
+  ROS_WARN_COND(global_verbosity >= Verbosity::PLANNER_STATUS,
+                "[PCI] STOP PLANNER.");
   return true;
 }
 
@@ -615,7 +616,8 @@ bool PlannerControlInterface::init() {
   // For example: checking odometry is ready.
   ros::Rate rr(1);
   while (!pose_is_ready_) {
-    ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG, "Waiting for odometry.");
+    ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,
+                  "Waiting for odometry.");
     ros::spinOnce();
     rr.sleep();
   }
@@ -705,11 +707,11 @@ void PlannerControlInterface::run() {
         else
           runGlobalRepositioning();
       } else {
-        ROS_INFO_THROTTLE(
-            2.0,
-            "[PCI][RUN] idle ready trigger=%s run_en=%d current_path=%zu iter=%d",
-            plannerTriggerModeName(trigger_mode_), run_en_, current_path_.size(),
-            planner_iteration_);
+        ROS_INFO_THROTTLE(2.0,
+                          "[PCI][RUN] idle ready trigger=%s run_en=%d "
+                          "current_path=%zu iter=%d",
+                          plannerTriggerModeName(trigger_mode_), run_en_,
+                          current_path_.size(), planner_iteration_);
       }
     } else if (pci_status == PCIManager::PCIStatus::kRunning) {
       if (distance_budget_homing_latched_ && homing_request_) {
@@ -746,8 +748,8 @@ void PlannerControlInterface::run() {
 }
 
 void PlannerControlInterface::runGlobalRepositioning() {
-  ROS_INFO_COND(global_verbosity >= Verbosity::PLANNER_STATUS, "Global Repositioning %i",
-                planner_iteration_);
+  ROS_INFO_COND(global_verbosity >= Verbosity::PLANNER_STATUS,
+                "Global Repositioning %i", planner_iteration_);
 
   planner_msgs::planner_set_planning_mode planning_mode_srv;
   planning_mode_srv.request.planning_mode =
@@ -772,7 +774,8 @@ void PlannerControlInterface::runGlobalRepositioning() {
                                 PCIManager::ExecutionPathType::kGlobalPath);
       current_path_ = path_to_be_exe;
     } else {
-      ROS_WARN_THROTTLE(1, "[PCI][STATE] global reposition returned empty path");
+      ROS_WARN_THROTTLE(1,
+                        "[PCI][STATE] global reposition returned empty path");
       ros::Duration(0.5).sleep();
     }
     planner_iteration_++;
@@ -816,7 +819,8 @@ void PlannerControlInterface::runInspection() {
   plan_srv.request.header.seq = planner_iteration_;
   plan_srv.request.header.frame_id = world_frame_id_;
   plan_srv.request.bound_mode = 0;
-  ROS_WARN_COND(global_verbosity >= Verbosity::INFO,"[PCI]: Called inspection srv");
+  ROS_WARN_COND(global_verbosity >= Verbosity::INFO,
+                "[PCI]: Called inspection srv");
   if (planner_inspection_srv_client_.call(plan_srv)) {
     std::vector<geometry_msgs::Pose> path_to_be_exe;
     pci_manager_->executePath(plan_srv.response.path, path_to_be_exe,
@@ -827,8 +831,8 @@ void PlannerControlInterface::runInspection() {
 }
 
 void PlannerControlInterface::runGlobalPlanner(bool exe_path = false) {
-  ROS_INFO_COND(global_verbosity >= Verbosity::PLANNER_STATUS, "Planning iteration %i",
-                planner_iteration_);
+  ROS_INFO_COND(global_verbosity >= Verbosity::PLANNER_STATUS,
+                "Planning iteration %i", planner_iteration_);
 
   planner_msgs::planner_set_planning_mode planning_mode_srv;
   planning_mode_srv.request.planning_mode =
@@ -865,7 +869,8 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
   const int kBBoxLevel = 3;
   bool success = false;
   ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
-                "[PCI][RUN] begin iteration=%d exe_path=%d trigger_mode=%d force_forward=%d",
+                "[PCI][RUN] begin iteration=%d exe_path=%d trigger_mode=%d "
+                "force_forward=%d",
                 planner_iteration_, exe_path, static_cast<int>(trigger_mode_),
                 force_forward_);
 
@@ -890,8 +895,8 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
     if (stop_planner_request_) return;
 
     bound_mode_ = ind;
-    ROS_INFO_COND(global_verbosity >= Verbosity::PLANNER_STATUS, "Planning iteration %i",
-                  planner_iteration_);
+    ROS_INFO_COND(global_verbosity >= Verbosity::PLANNER_STATUS,
+                  "Planning iteration %i", planner_iteration_);
     planner_msgs::planner_srv plan_srv;
     plan_srv.request.header.stamp = ros::Time::now();
     plan_srv.request.header.seq = planner_iteration_;
@@ -899,18 +904,21 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
     plan_srv.request.bound_mode = bound_mode_;
     plan_srv.request.root_pose = getPoseToStart();
     ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
-                  "[PCI][RUN] call planner iter=%d bbox=%d bound=%d root=[%.2f %.2f %.2f yaw=%.2f]",
+                  "[PCI][RUN] call planner iter=%d bbox=%d bound=%d root=[%.2f "
+                  "%.2f %.2f yaw=%.2f]",
                   planner_iteration_, ind, plan_srv.request.bound_mode,
                   plan_srv.request.root_pose.position.x,
                   plan_srv.request.root_pose.position.y,
                   plan_srv.request.root_pose.position.z,
                   tf::getYaw(plan_srv.request.root_pose.orientation));
-    ROS_WARN_COND(global_verbosity >= Verbosity::ERROR,"[PCI]: Called plan srv");
+    ROS_WARN_COND(global_verbosity >= Verbosity::ERROR,
+                  "[PCI]: Called plan srv");
     if (planner_client_.call(plan_srv)) {
-      ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
-                    "[PCI][RUN] response iter=%d bbox=%d path_size=%zu status=%d",
-                    planner_iteration_, ind, plan_srv.response.path.size(),
-                    static_cast<int>(plan_srv.response.status));
+      ROS_INFO_COND(
+          global_verbosity >= Verbosity::INFO,
+          "[PCI][RUN] response iter=%d bbox=%d path_size=%zu status=%d",
+          planner_iteration_, ind, plan_srv.response.path.size(),
+          static_cast<int>(plan_srv.response.status));
       ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
                     "[PCI][STATE] planner response=%s bbox=%d exe_path=%d",
                     plannerResponseStatusName(plan_srv.response.status), ind,
@@ -931,36 +939,43 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
             PCIManager::ExecutionPathType path_type =
                 PCIManager::ExecutionPathType::kLocalPath;
 
-            ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,"[PCI]: returned status: %d", plan_srv.response.status);
-            if (plan_srv.response.status == planner_msgs::planner_srv::Response::kHoming) {
+            ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,
+                          "[PCI]: returned status: %d",
+                          plan_srv.response.status);
+            if (plan_srv.response.status ==
+                planner_msgs::planner_srv::Response::kHoming) {
               // Perform homing step, set back to manual mode, and stop all
               // current requests.
               resetPlanner();
               path_type = PCIManager::ExecutionPathType::kHomingPath;
-            }
-            else if (plan_srv.response.status == planner_msgs::planner_srv::Response::kRepositioning) {
-              ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,"[PCI]: Global Repositioning Path");
+            } else if (plan_srv.response.status ==
+                       planner_msgs::planner_srv::Response::kRepositioning) {
+              ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,
+                            "[PCI]: Global Repositioning Path");
               path_type = PCIManager::ExecutionPathType::kGlobalPath;
-            }
-            else if (plan_srv.response.status == planner_msgs::planner_srv::Response::kAutoCustomPath) {
+            } else if (plan_srv.response.status ==
+                       planner_msgs::planner_srv::Response::kAutoCustomPath) {
               // Perform homing step, set back to manual mode, and stop all
               // current requests.
-              ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,"[PCI]: Auto Custom Path");
+              ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,
+                            "[PCI]: Auto Custom Path");
               path_type = PCIManager::ExecutionPathType::kManualPath;
-            }
-            else if (plan_srv.response.status == planner_msgs::planner_srv::Response::kManualCustomPath) {
+            } else if (plan_srv.response.status ==
+                       planner_msgs::planner_srv::Response::kManualCustomPath) {
               // Perform homing step, set back to manual mode, and stop all
               // current requests.
-              ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,"[PCI]: Manual Custom Path");
+              ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,
+                            "[PCI]: Manual Custom Path");
               resetPlanner();
               path_type = PCIManager::ExecutionPathType::kManualPath;
-            }
-            else {
-              ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,"[PCI]: Local Path");
+            } else {
+              ROS_WARN_COND(global_verbosity >= Verbosity::DEBUG,
+                            "[PCI]: Local Path");
             }
             v_current_ = pci_manager_->getVelocity(path_type);
             ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
-                          "[PCI][RUN] executing path type=%s velocity=%.2f raw_path_size=%zu",
+                          "[PCI][RUN] executing path type=%s velocity=%.2f "
+                          "raw_path_size=%zu",
                           executionPathTypeName(path_type), v_current_,
                           plan_srv.response.path.size());
             // Publish the status
@@ -969,7 +984,8 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
                                                 path_to_be_exe, path_type);
             current_path_ = path_to_be_exe;
             ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
-                          "[PCI][RUN] executePath returned modified_path_size=%zu success=%d type=%s",
+                          "[PCI][RUN] executePath returned "
+                          "modified_path_size=%zu success=%d type=%s",
                           current_path_.size(), success,
                           executionPathTypeName(path_type));
           } else if (ind < (kBBoxLevel - 1)) {
@@ -977,7 +993,8 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
             ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                           "Attemp to re-plan with smaller bound.");
             ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
-                          "[PCI][RUN] force_forward rejected backward path status=%d, retry bbox=%d",
+                          "[PCI][RUN] force_forward rejected backward path "
+                          "status=%d, retry bbox=%d",
                           static_cast<int>(plan_srv.response.status), ind + 1);
           }
         }
@@ -985,25 +1002,31 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
         publishPlannerStatus(plan_srv.response, false);
         ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                       "Planner returned an empty path");
-        ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
-                      "[PCI][RUN] empty path iter=%d bbox=%d status=%d exe_path=%d",
-                      planner_iteration_, ind,
-                      static_cast<int>(plan_srv.response.status), exe_path);
+        ROS_WARN_COND(
+            global_verbosity >= Verbosity::WARN,
+            "[PCI][RUN] empty path iter=%d bbox=%d status=%d exe_path=%d",
+            planner_iteration_, ind, static_cast<int>(plan_srv.response.status),
+            exe_path);
         ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                       "[PCI][STATE] no path from planner status=%s bbox=%d",
                       plannerResponseStatusName(plan_srv.response.status), ind);
-        if (plan_srv.response.status == plan_srv.response.kHoming || plan_srv.response.status == planner_msgs::planner_srv::Response::kManualCustomPath) {
+        if (plan_srv.response.status == plan_srv.response.kHoming ||
+            plan_srv.response.status ==
+                planner_msgs::planner_srv::Response::kManualCustomPath) {
           // Ran out of time budget or already at home. Stop and reset planner
           const bool preserve_auto =
               trigger_mode_ == PlannerTriggerModeType::kAuto &&
               plan_srv.response.status ==
                   planner_msgs::planner_srv::Response::kManualCustomPath;
           ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
-                        "[PCI][RUN] empty path with terminal status, resetPlanner(preserve_auto=%d)",
+                        "[PCI][RUN] empty path with terminal status, "
+                        "resetPlanner(preserve_auto=%d)",
                         preserve_auto);
           if (preserve_auto) {
             ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
-                          "[PCI][AUTO_WATCHDOG] planner returned empty auto path; keeping auto mode alive so HomingCheck/time-budget can be evaluated again");
+                          "[PCI][AUTO_WATCHDOG] planner returned empty auto "
+                          "path; keeping auto mode alive so "
+                          "HomingCheck/time-budget can be evaluated again");
           }
           resetPlanner(preserve_auto);
           success = true;
@@ -1013,7 +1036,8 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
       planner_iteration_++;
       if (success) break;
     } else {
-      ROS_ERROR_COND(global_verbosity >= Verbosity::ERROR, "Planner service failed");
+      ROS_ERROR_COND(global_verbosity >= Verbosity::ERROR,
+                     "Planner service failed");
       ros::Duration(0.5).sleep();
     }
   }
@@ -1081,9 +1105,10 @@ void PlannerControlInterface::runHoming(bool exe_path) {
                     "PCI: executing homing path with %zu poses",
                     current_path_.size());
     } else {
-      ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
-                    "PCI: homing path not executed (execute_path=%s, returned_poses=%zu)",
-                    exe_path ? "true" : "false", plan_srv.response.path.size());
+      ROS_WARN_COND(
+          global_verbosity >= Verbosity::WARN,
+          "PCI: homing path not executed (execute_path=%s, returned_poses=%zu)",
+          exe_path ? "true" : "false", plan_srv.response.path.size());
       resetPlanner();
     }
     planner_iteration_++;
@@ -1212,14 +1237,13 @@ bool PlannerControlInterface::loadParams() {
                   world_frame_id_.c_str());
   }
 
-  ros::param::param(ns + "/distance_budget_enable",
-                    distance_budget_enable_, false);
-  ros::param::param(ns + "/distance_budget_limit",
-                    distance_budget_limit_, 0.0);
-  ros::param::param(ns + "/distance_budget_max_step",
-                    distance_budget_max_step_, 2.0);
-  ros::param::param(ns + "/distance_budget_min_step",
-                    distance_budget_min_step_, 0.01);
+  ros::param::param(ns + "/distance_budget_enable", distance_budget_enable_,
+                    false);
+  ros::param::param(ns + "/distance_budget_limit", distance_budget_limit_, 0.0);
+  ros::param::param(ns + "/distance_budget_max_step", distance_budget_max_step_,
+                    2.0);
+  ros::param::param(ns + "/distance_budget_min_step", distance_budget_min_step_,
+                    0.01);
   ros::param::param(ns + "/distance_budget_log_period",
                     distance_budget_log_period_, 1.0);
   ros::param::param(ns + "/distance_budget_release_timeout",

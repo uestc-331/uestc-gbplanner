@@ -4,7 +4,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
 
 find_package(catkin REQUIRED COMPONENTS
   rviz
-  planner_msgs)
+  planner_msgs
+  roscpp
+  std_msgs
+  std_srvs)
 
 catkin_package()
 include_directories(${catkin_INCLUDE_DIRS})
@@ -30,16 +33,26 @@ add_definitions(-DQT_NO_KEYWORDS)
 ## The generated MOC files are included automatically as headers.
 set(SRC_FILES
   src/gbplanner_ui.cpp
+  src/gbplanner_topic_ui.cpp
 )
 
 add_library(${PROJECT_NAME} ${SRC_FILES})
 
+add_executable(gbplanner_topic_command_bridge
+  src/gbplanner_topic_command_bridge.cpp)
+add_executable(gbplanner_topic_terminal
+  src/gbplanner_topic_terminal.cpp)
+
 target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(gbplanner_topic_command_bridge ${catkin_LIBRARIES})
+target_link_libraries(gbplanner_topic_terminal ${catkin_LIBRARIES})
 
 ## Install rules
 
 install(TARGETS
   ${PROJECT_NAME}
+  gbplanner_topic_command_bridge
+  gbplanner_topic_terminal
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -51,5 +64,3 @@ install(FILES
 
 install(DIRECTORY icons/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/icons)
-
-

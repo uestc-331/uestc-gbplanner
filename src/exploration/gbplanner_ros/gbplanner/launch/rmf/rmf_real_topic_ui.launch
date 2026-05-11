@@ -1,0 +1,51 @@
+<launch>
+  <arg name="robot_name" default="rmf_obelix"/>
+  <arg name="use_sim_time" default="false"/>
+  <arg name="launch_prefix" default=""/>
+
+  <arg name="odometry_topic" default="/vins_fusion/imu_propagate"/>
+  <arg name="publish_odom_tf" default="false"/>
+  <arg name="odom_parent_frame" default="world"/>
+  <arg name="odom_child_frame" default="body"/>
+
+  <arg name="lidar_topic" default="/cloud_registered_360"/>
+  <arg name="planner_pointcloud_topic" default="/cloud_registered_360"/>
+  <arg name="fix_pointcloud_frame" default="false"/>
+  <arg name="fixed_lidar_topic" default="/cloud_registered_360_fixed"/>
+  <arg name="lidar_frame_id" default="camera_init"/>
+  <arg name="update_lidar_stamp_to_now" default="true"/>
+  <arg name="traj_server_en" default="true"/>
+
+  <arg name="gbplanner_config_file"
+       default="$(find gbplanner)/config/$(arg robot_name)/gbplanner_config.yaml"/>
+  <arg name="pci_file"
+       default="$(find gbplanner)/config/$(arg robot_name)/planner_control_interface_real_config.yaml"/>
+  <arg name="map_config_file"
+       default="$(find gbplanner)/config/$(arg robot_name)/voxblox_sim_config.yaml"/>
+
+  <include file="$(find gbplanner)/launch/rmf/rmf_real.launch">
+    <arg name="robot_name" value="$(arg robot_name)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="launch_prefix" value="$(arg launch_prefix)"/>
+    <arg name="odometry_topic" value="$(arg odometry_topic)"/>
+    <arg name="publish_odom_tf" value="$(arg publish_odom_tf)"/>
+    <arg name="odom_parent_frame" value="$(arg odom_parent_frame)"/>
+    <arg name="odom_child_frame" value="$(arg odom_child_frame)"/>
+    <arg name="lidar_topic" value="$(arg lidar_topic)"/>
+    <arg name="planner_pointcloud_topic" value="$(arg planner_pointcloud_topic)"/>
+    <arg name="fix_pointcloud_frame" value="$(arg fix_pointcloud_frame)"/>
+    <arg name="fixed_lidar_topic" value="$(arg fixed_lidar_topic)"/>
+    <arg name="lidar_frame_id" value="$(arg lidar_frame_id)"/>
+    <arg name="update_lidar_stamp_to_now" value="$(arg update_lidar_stamp_to_now)"/>
+    <arg name="gbplanner_config_file" value="$(arg gbplanner_config_file)"/>
+    <arg name="pci_file" value="$(arg pci_file)"/>
+    <arg name="map_config_file" value="$(arg map_config_file)"/>
+    <arg name="rviz_en" value="false"/>
+    <arg name="traj_server_en" value="$(arg traj_server_en)"/>
+  </include>
+
+  <node pkg="gbplanner_ui" type="gbplanner_topic_command_bridge"
+        name="gbplanner_topic_command_bridge" output="screen"/>
+  <node pkg="rviz" type="rviz" name="gbplanner_topic_ui" output="screen"
+        args="-d $(find gbplanner_ui)/config/gbplanner_topic.rviz"/>
+</launch>

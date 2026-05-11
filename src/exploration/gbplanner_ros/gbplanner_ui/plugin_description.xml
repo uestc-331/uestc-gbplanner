@@ -6,4 +6,11 @@
       A panel widget for control of gbplanner.
     </description>
   </class>
+  <class name="gbplanner_ui/GbPlanner Topic Control"
+         type="gbplanner_ui::gbplanner_topic_panel"
+         base_class_type="rviz::Panel">
+    <description>
+      A topic-driven panel widget for control of gbplanner.
+    </description>
+  </class>
 </library>

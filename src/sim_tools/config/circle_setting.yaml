@@ -1,0 +1,65 @@
+# <!-- 如果手动输入参考点，在下面填写 -->
+# <!-- travel_task/ref_pos_type,1代表订阅获取,2代表手动获取 -->
+travel_task/ref_pos_type: 1
+# <!-- 圈的数量 -->
+travel/circle_count: 12   
+
+travel/ref_point0_x: 3.8
+travel/ref_point0_y: 2.2
+travel/ref_point0_z: 1.5
+travel/ref_point0_yaw: 0.0
+
+travel/ref_point1_x: 7.4
+travel/ref_point1_y: 2.6
+travel/ref_point1_z: 1.8
+travel/ref_point1_yaw: 0.0
+
+travel/ref_point2_x: 9.5
+travel/ref_point2_y: 3.0
+travel/ref_point2_z: 1.0
+travel/ref_point2_yaw: 1.57
+
+travel/ref_point3_x: 8.5
+travel/ref_point3_y: 5.0
+travel/ref_point3_z: 2.0
+travel/ref_point3_yaw: 1.57
+
+travel/ref_point4_x: 0.0
+travel/ref_point4_y: 0.0
+travel/ref_point4_z: 0.0
+travel/ref_point4_yaw: 0.0
+
+travel/ref_point5_x: 0.0
+travel/ref_point5_y: 0.0
+travel/ref_point5_z: 0.0
+travel/ref_point5_yaw: 0.0
+
+travel/ref_point6_x: 0.0
+travel/ref_point6_y: 0.0
+travel/ref_point6_z: 0.0
+travel/ref_point6_yaw: 0.0
+
+travel/ref_point7_x: 0.0
+travel/ref_point7_y: 0.0
+travel/ref_point7_z: 0.0
+travel/ref_point7_yaw: 0.0
+
+travel/ref_point8_x: 0.0
+travel/ref_point8_y: 0.0
+travel/ref_point8_z: 0.0
+travel/ref_point8_yaw: 0.0
+
+travel/ref_point9_x: 0.0
+travel/ref_point9_y: 0.0
+travel/ref_point9_z: 0.0
+travel/ref_point9_yaw: 0.0
+
+travel/ref_point10_x: 0.0
+travel/ref_point10_y: 0.0
+travel/ref_point10_z: 0.0
+travel/ref_point10_yaw: 0.0
+
+travel/ref_point11_x: 0.0
+travel/ref_point11_y: 0.0
+travel/ref_point11_z: 0.0
+travel/ref_point11_yaw: 0.0

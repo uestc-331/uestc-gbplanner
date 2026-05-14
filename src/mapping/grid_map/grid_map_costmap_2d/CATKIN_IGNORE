@@ -1,0 +1,2 @@
+Ignored in this workspace because the GB3 exploration chain does not use
+grid_map_costmap_2d, and the runtime environment does not provide costmap_2d.

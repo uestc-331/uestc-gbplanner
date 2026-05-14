@@ -1,0 +1,2 @@
+Ignored in this workspace because this optional RotorS metapackage depends on
+rotors_hil_interface, which is not present and is not required by README1.

@@ -1,0 +1,9 @@
+<launch>
+  <arg name="global_frontier_id" default="0"/>
+  <node pkg="gbplanner_ui" type="gbplanner_topic_command_bridge"
+        name="gbplanner_topic_command_bridge" output="screen"/>
+  <node pkg="gbplanner_ui" type="gbplanner_topic_terminal"
+        name="gbplanner_topic_terminal" output="screen">
+    <param name="global_frontier_id" value="$(arg global_frontier_id)"/>
+  </node>
+</launch>

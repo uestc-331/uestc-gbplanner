@@ -1,0 +1,3 @@
+Ignored in this workspace because the README1 PX4 exploration flow does not
+use the SMB OPC stack, and this environment does not provide
+interactive_marker_twist_server.

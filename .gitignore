@@ -1,0 +1,57 @@
+# Catkin workspace outputs
+/build/
+/devel/
+/install/
+/logs/
+/.catkin_tools/
+
+# ROS runtime data
+*.bag
+*.bag.active
+*.db3
+*.mcap
+
+# Archives and large/generated assets
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.pcd
+*.ply
+*.bt
+*.ot
+*.dae
+*.stl
+*.obj
+*.mesh
+
+# Heavy simulation model assets
+/src/sim/subt_cave_sim/models/
+/src/sim/rotors_simulator/rotors_description/meshes/
+/src/sim/rotors_simulator/rotors_gazebo/models/
+/src/sim/arl_gazebo_sim_ros/arl_gazebo_sim/gz/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# CMake/editor generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# IDE and OS files
+.codex
+.vscode/
+.idea/
+.DS_Store

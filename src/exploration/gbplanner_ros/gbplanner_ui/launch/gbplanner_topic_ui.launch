@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="gbplanner_ui" type="gbplanner_topic_command_bridge"
+        name="gbplanner_topic_command_bridge" output="screen"/>
+  <node pkg="rviz" type="rviz" name="gbplanner_topic_ui" output="screen"
+        args="-d $(find gbplanner_ui)/config/gbplanner_topic.rviz"/>
+</launch>

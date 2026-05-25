@@ -22,7 +22,7 @@ stuck_timeout: 4.0
 stuck_min_progress: 0.15
 stuck_dist_margin: 0.25
 distance_budget_enable: true
-distance_budget_limit: 100.0
+distance_budget_limit: 15.0
 distance_budget_max_step: 2.0
 distance_budget_min_step: 0.01
 distance_budget_log_period: 1.0

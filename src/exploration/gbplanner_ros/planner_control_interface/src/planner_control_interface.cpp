@@ -88,6 +88,21 @@ PlannerControlInterface::PlannerControlInterface(
       nh_.subscribe("pose", 1, &PlannerControlInterface::poseCallback, this);
   pose_stamped_sub_ = nh_.subscribe(
       "pose_stamped", 1, &PlannerControlInterface::poseStampedCallback, this);
+  topic_start_planner_sub_ = nh_.subscribe(
+      "/gbplanner_ui/cmd/start_planner", 1,
+      &PlannerControlInterface::topicStartPlannerCallback, this);
+  topic_stop_planner_sub_ = nh_.subscribe(
+      "/gbplanner_ui/cmd/stop_planner", 1,
+      &PlannerControlInterface::topicStopPlannerCallback, this);
+  topic_homing_sub_ = nh_.subscribe(
+      "/gbplanner_ui/cmd/homing", 1,
+      &PlannerControlInterface::topicHomingCallback, this);
+  topic_start_single_sub_ = nh_.subscribe(
+      "/gbplanner_ui/cmd/start_planner_single", 1,
+      &PlannerControlInterface::topicStartSingleCallback, this);
+  topic_init_motion_sub_ = nh_.subscribe(
+      "/gbplanner_ui/cmd/init_motion", 1,
+      &PlannerControlInterface::topicInitMotionCallback, this);
 
   pci_server_ =
       nh_.advertiseService("planner_control_interface_trigger",
@@ -242,6 +257,55 @@ void PlannerControlInterface::navGoalCallback(
   posest.header = nav_msgs.header;
   posest.pose = nav_msgs.pose;
   setGoal(posest);
+}
+
+void PlannerControlInterface::topicStartPlannerCallback(
+    const std_msgs::Empty::ConstPtr&) {
+  planner_msgs::pci_trigger::Request req;
+  planner_msgs::pci_trigger::Response res;
+  req.not_exe_path = false;
+  req.set_auto = true;
+  req.bound_mode = 0;
+  req.vel_max = 0.0;
+  triggerCallback(req, res);
+  ROS_INFO("[PCI][TOPIC_CMD] Start Planner success=%d", res.success);
+}
+
+void PlannerControlInterface::topicStopPlannerCallback(
+    const std_msgs::Empty::ConstPtr&) {
+  planner_msgs::pci_stop::Request req;
+  planner_msgs::pci_stop::Response res;
+  stopPlannerCallback(req, res);
+  ROS_INFO("[PCI][TOPIC_CMD] Stop Planner success=%d", res.success);
+}
+
+void PlannerControlInterface::topicHomingCallback(
+    const std_msgs::Empty::ConstPtr&) {
+  planner_msgs::pci_homing_trigger::Request req;
+  planner_msgs::pci_homing_trigger::Response res;
+  req.not_exe_path = false;
+  homingCallback(req, res);
+  ROS_INFO("[PCI][TOPIC_CMD] Homing success=%d", res.success);
+}
+
+void PlannerControlInterface::topicStartSingleCallback(
+    const std_msgs::Empty::ConstPtr&) {
+  planner_msgs::pci_trigger::Request req;
+  planner_msgs::pci_trigger::Response res;
+  req.not_exe_path = false;
+  req.set_auto = false;
+  req.bound_mode = 0;
+  req.vel_max = 0.0;
+  triggerCallback(req, res);
+  ROS_INFO("[PCI][TOPIC_CMD] Start Single Planner success=%d", res.success);
+}
+
+void PlannerControlInterface::topicInitMotionCallback(
+    const std_msgs::Empty::ConstPtr&) {
+  planner_msgs::pci_initialization::Request req;
+  planner_msgs::pci_initialization::Response res;
+  initializationCallback(req, res);
+  ROS_INFO("[PCI][TOPIC_CMD] Init Motion success=%d", res.success);
 }
 
 void PlannerControlInterface::setGoal(const geometry_msgs::PoseStamped& pose) {

@@ -22,7 +22,7 @@ stuck_timeout: 2.0
 stuck_min_progress: 0.15
 stuck_dist_margin: 0.03
 distance_budget_enable: true
-distance_budget_limit: 100.0
+distance_budget_limit: 13.0
 distance_budget_max_step: 2.0
 distance_budget_min_step: 0.01
 distance_budget_log_period: 1.0
@@ -36,9 +36,9 @@ init_motion:
   x_forward: 0.5
 
 RobotDynamics:
-  v_max: 1.0 # PCI 实际生成执行轨迹的最大速度；越大越容易显得硬，实机想柔可降到 0.6 左右试
-  v_init_max: 1.0 # 初始化运动最大速度
-  v_homing_max: 1.0 # homing 执行轨迹最大速度；区别于 gbplanner_config.yaml 中的返航时间估计速度
+  v_max: 0.6 # PCI 实际生成执行轨迹的最大速度；越大越容易显得硬，实机想柔可降到 0.6 左右试
+  v_init_max: 0.5 # 初始化运动最大速度
+  v_homing_max: 0.5 # homing 执行轨迹最大速度；区别于 gbplanner_config.yaml 中的返航时间估计速度
   yaw_rate_max: 0.1 # 执行轨迹最大 yaw 角速度；越小转向越柔，但可能跟不上急转路径
   dt: 0.05 # 轨迹采样时间间隔；越小轨迹点更密，消息量更大
-  a_max: 4.0 # 执行轨迹加速度上限；越小越柔但响应慢，想平滑可试 1.0~2.0
+  a_max: 1.5 # 执行轨迹加速度上限；越小越柔但响应慢，想平滑可试 1.0~2.0

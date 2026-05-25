@@ -9,6 +9,7 @@
 #include <nav_msgs/Odometry.h>
 #include <ros/package.h>
 #include <ros/ros.h>
+#include <std_msgs/Empty.h>
 #include <std_srvs/Empty.h>
 #include <std_srvs/Trigger.h>
 #include <tf/tf.h>
@@ -70,6 +71,11 @@ class PlannerControlInterface {
   ros::Subscriber odometry_sub_;
   ros::Subscriber pose_sub_;
   ros::Subscriber pose_stamped_sub_;
+  ros::Subscriber topic_start_planner_sub_;
+  ros::Subscriber topic_stop_planner_sub_;
+  ros::Subscriber topic_homing_sub_;
+  ros::Subscriber topic_start_single_sub_;
+  ros::Subscriber topic_init_motion_sub_;
   ros::Subscriber nav_goal_sub_;
   ros::Subscriber pose_goal_sub_;
   ros::ServiceClient planner_client_;
@@ -184,6 +190,11 @@ class PlannerControlInterface {
   void poseCallback(const geometry_msgs::PoseWithCovarianceStamped& pose);
   void navGoalCallback(const geometry_msgs::PoseStamped& nav_msg);
   void poseGoalCallback(const geometry_msgs::PoseStamped& pose_msg);
+  void topicStartPlannerCallback(const std_msgs::Empty::ConstPtr& msg);
+  void topicStopPlannerCallback(const std_msgs::Empty::ConstPtr& msg);
+  void topicHomingCallback(const std_msgs::Empty::ConstPtr& msg);
+  void topicStartSingleCallback(const std_msgs::Empty::ConstPtr& msg);
+  void topicInitMotionCallback(const std_msgs::Empty::ConstPtr& msg);
   void setGoal(const geometry_msgs::PoseStamped& pose);
   void poseStampedCallback(const geometry_msgs::PoseStamped& pose);
   void processPose(const geometry_msgs::Pose& pose);

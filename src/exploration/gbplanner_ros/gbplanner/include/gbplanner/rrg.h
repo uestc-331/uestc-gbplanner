@@ -284,7 +284,9 @@ class Rrg {
                            const Eigen::Vector3d& robot_size);
   bool isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
                            const Eigen::Vector3d& robot_size,
-                           bool stop_at_unknown_voxel);
+                           bool stop_at_unknown_voxel,
+                           bool log_failure = false,
+                           const std::string& log_context = "");
 
   bool setGlobalBound(planner_msgs::PlanningBound& bound,
                       bool reset_to_default = false);

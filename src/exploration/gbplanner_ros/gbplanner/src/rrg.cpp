@@ -12,6 +12,21 @@
 
 // namespace explorer {
 
+namespace {
+const char* voxelStatusToString(VoxelStatus status) {
+  switch (status) {
+    case VoxelStatus::kUnknown:
+      return "unknown";
+    case VoxelStatus::kOccupied:
+      return "occupied";
+    case VoxelStatus::kFree:
+      return "free";
+    default:
+      return "invalid";
+  }
+}
+}  // namespace
+
 Rrg::Rrg(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private)
     : nh_(nh), nh_private_(nh_private) {
   map_manager_ =
@@ -5270,7 +5285,9 @@ std::vector<geometry_msgs::Pose> Rrg::getHomingPath(std::string tgt_frame) {
     ret_path = interp_path;
   }
 
-  if (!ret_path.empty() && !isPathCollisionFree(ret_path, robot_box_size_)) {
+  if (!ret_path.empty() &&
+      !isPathCollisionFree(ret_path, robot_box_size_, true, true,
+                           "homing/post_processed")) {
     ROS_WARN(
         "[RRG][HOMING] Post-processed homing path failed collision check, "
         "trying raw homing path as fallback.");
@@ -5280,7 +5297,8 @@ std::vector<geometry_msgs::Pose> Rrg::getHomingPath(std::string tgt_frame) {
       raw_check_path = interp_path;
     }
     if (!raw_check_path.empty() &&
-        isPathCollisionFree(raw_check_path, robot_box_size_)) {
+        isPathCollisionFree(raw_check_path, robot_box_size_, true, true,
+                            "homing/raw")) {
       ROS_WARN(
           "[RRG][HOMING] Raw homing path is collision-free, returning it as "
           "fallback.");
@@ -5326,7 +5344,8 @@ std::vector<geometry_msgs::Pose> Rrg::getHomingPath(std::string tgt_frame) {
       }
       if (!candidate_path.empty() &&
           isPathCollisionFree(candidate_path, candidate.size,
-                              candidate.stop_at_unknown_voxel)) {
+                              candidate.stop_at_unknown_voxel, true,
+                              std::string("homing/") + candidate.name)) {
         ROS_WARN("[RRG][HOMING] Emergency fallback succeeded: %s",
                  candidate.name);
         visualization_->visualizeRefPath(candidate_path);
@@ -9892,16 +9911,28 @@ bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
 
 bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
                               const Eigen::Vector3d& robot_size,
-                              bool stop_at_unknown_voxel) {
+                              bool stop_at_unknown_voxel,
+                              bool log_failure,
+                              const std::string& log_context) {
   if (path.empty()) return true;  // nothing to check
 
   Eigen::Vector3d voxel(path[0].position.x, path[0].position.y,
                         path[0].position.z);
   if (path.size() == 1) {
-    if (VoxelStatus::kFree ==
-        map_manager_->getBoxStatus(voxel, robot_size, stop_at_unknown_voxel)) {
+    const VoxelStatus status =
+        map_manager_->getBoxStatus(voxel, robot_size, stop_at_unknown_voxel);
+    if (VoxelStatus::kFree == status) {
       return true;
     } else {
+      if (log_failure) {
+        ROS_WARN(
+            "[RRG][PATH_CHECK] %s failed single pose status=%s "
+            "pos=(%.3f, %.3f, %.3f) size=(%.3f, %.3f, %.3f) "
+            "stop_unknown=%d",
+            log_context.c_str(), voxelStatusToString(status), voxel.x(),
+            voxel.y(), voxel.z(), robot_size.x(), robot_size.y(),
+            robot_size.z(), stop_at_unknown_voxel);
+      }
       return false;
     }
   }
@@ -9911,9 +9942,21 @@ bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
                                 path[i].position.z);
     Eigen::Vector3d end_point(path[i + 1].position.x, path[i + 1].position.y,
                               path[i + 1].position.z);
-    if (VoxelStatus::kFree !=
+    const VoxelStatus status =
         map_manager_->getPathStatus(start_point, end_point, robot_size,
-                                    stop_at_unknown_voxel)) {
+                                    stop_at_unknown_voxel);
+    if (VoxelStatus::kFree != status) {
+      if (log_failure) {
+        ROS_WARN(
+            "[RRG][PATH_CHECK] %s failed segment=%d/%zu status=%s "
+            "start=(%.3f, %.3f, %.3f) end=(%.3f, %.3f, %.3f) "
+            "size=(%.3f, %.3f, %.3f) stop_unknown=%d",
+            log_context.c_str(), i, path.size() - 1,
+            voxelStatusToString(status), start_point.x(), start_point.y(),
+            start_point.z(), end_point.x(), end_point.y(), end_point.z(),
+            robot_size.x(), robot_size.y(), robot_size.z(),
+            stop_at_unknown_voxel);
+      }
       return false;
     }
   }

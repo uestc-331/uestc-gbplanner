@@ -44,25 +44,6 @@ CLI 菜单对应：
 
 gbplanner3 的终端话题入口是 `/gbplanner_ui/cmd/...`。这些话题需要 `gbplanner_topic_command_bridge` 或相关 launch 已经启动，否则发出去没人接收。
 
-### 简单按键 topic UI
-
-新节点只发下面 5 个 `std_msgs/Empty` 话题，按 `q` 退出：
-
-```bash
-cd /home/super/uestcgbplanner3
-source /opt/ros/noetic/setup.bash
-source /home/super/uestcgbplanner3/devel/setup.bash
-rosrun gbplanner_ui gbplanner_simple_topic_ui
-```
-
-按键对应：
-
-- `1`: Start Planner -> `/gbplanner_ui/cmd/start_planner`
-- `2`: Stop Planner -> `/gbplanner_ui/cmd/stop_planner`
-- `3`: Homing -> `/gbplanner_ui/cmd/homing`
-- `4`: Start Single Planner -> `/gbplanner_ui/cmd/start_planner_single`
-- `5`: Init Motion -> `/gbplanner_ui/cmd/init_motion`
-
 ### 启动规划
 
 ```bash
@@ -88,6 +69,11 @@ rostopic pub -1 /gbplanner_ui/cmd/stop_planner std_msgs/Empty "{}"
 
 ```bash
 rostopic pub -1 /gbplanner_ui/cmd/homing std_msgs/Empty "{}"
+```
+
+#### 看是否回家
+```bash
+rostopic echo /gbplanner_is_homing
 ```
 
 ### 初始化 / Initialization

@@ -350,7 +350,7 @@ BT::NodeStatus Homing::tick()
   }
   else
   {
-    ROS_WARN("[BT][Homing] Succeeded");
+    ROS_ERROR("[BT][Homing] Succeeded");
     failed_homing_count_ = 0;
     return BT::NodeStatus::SUCCESS;
   }

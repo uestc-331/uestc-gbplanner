@@ -333,6 +333,7 @@ struct PlanningParams {
   double traverse_time_max;
   bool planning_backward;
   bool path_safety_enhance_enable;
+  bool enforce_global_bounds_on_paths;
   double path_interpolation_distance;
   // Global planner
   double relaxed_corridor_multiplier;

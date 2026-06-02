@@ -2,6 +2,7 @@
 #include "planner_control_interface/planner_control_interface.h"
 
 #include <chrono>
+#include <cmath>
 #include <thread>
 
 #include <std_msgs/Bool.h>
@@ -384,6 +385,8 @@ void PlannerControlInterface::resetPlanner(bool preserve_auto_mode) {
   go_to_waypoint_request_ = false;
   go_to_waypoint_with_checking_ = false;
   inspection_srv_request_ = false;
+  distance_budget_exploration_execution_active_ = false;
+  distance_budget_has_last_odom_ = false;
 
   // Remove the last waypoint to prevent the planner starts from that last wp.
   current_path_.clear();
@@ -932,6 +935,8 @@ void PlannerControlInterface::runGlobalPlanner(bool exe_path = false) {
 void PlannerControlInterface::runPlanner(bool exe_path = false) {
   const int kBBoxLevel = 3;
   bool success = false;
+  distance_budget_exploration_execution_active_ = false;
+  distance_budget_has_last_odom_ = false;
   ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
                 "[PCI][RUN] begin iteration=%d exe_path=%d trigger_mode=%d "
                 "force_forward=%d",
@@ -1047,6 +1052,17 @@ void PlannerControlInterface::runPlanner(bool exe_path = false) {
             success = pci_manager_->executePath(plan_srv.response.path,
                                                 path_to_be_exe, path_type);
             current_path_ = path_to_be_exe;
+            distance_budget_exploration_execution_active_ =
+                success && trigger_mode_ == PlannerTriggerModeType::kAuto &&
+                path_type == PCIManager::ExecutionPathType::kLocalPath &&
+                !current_path_.empty();
+            if (!distance_budget_exploration_execution_active_) {
+              distance_budget_has_last_odom_ = false;
+            }
+            ROS_INFO_COND(
+                global_verbosity >= Verbosity::INFO,
+                "[PCI][DIST_BUDGET] exploration execution active=%d",
+                distance_budget_exploration_execution_active_);
             ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
                           "[PCI][RUN] executePath returned "
                           "modified_path_size=%zu success=%d type=%s",
@@ -1146,6 +1162,8 @@ void PlannerControlInterface::runHoming(bool exe_path) {
   plan_srv.request.header.seq = planner_iteration_;
   plan_srv.request.header.frame_id = world_frame_id_;
   trigger_mode_ = PlannerTriggerModeType::kManual;
+  distance_budget_exploration_execution_active_ = false;
+  distance_budget_has_last_odom_ = false;
 
   ROS_INFO_COND(global_verbosity >= Verbosity::INFO,
                 "PCI: requesting homing path (iteration=%d, execute_path=%s)",
@@ -1360,7 +1378,10 @@ bool PlannerControlInterface::loadParams() {
 bool PlannerControlInterface::isDistanceBudgetCountingActive() const {
   return distance_budget_enable_ &&
          trigger_mode_ == PlannerTriggerModeType::kAuto &&
-         !distance_budget_homing_latched_;
+         !distance_budget_homing_latched_ &&
+         distance_budget_exploration_execution_active_ && pci_manager_ &&
+         pci_manager_->getStatus() == PCIManager::PCIStatus::kRunning &&
+         !current_path_.empty();
 }
 
 bool PlannerControlInterface::isDistanceBudgetReleaseTimedOut() const {
@@ -1378,6 +1399,7 @@ void PlannerControlInterface::resetDistanceBudgetTracking(
   accumulated_exploration_distance_ = 0.0;
   distance_budget_homing_latched_ = false;
   distance_budget_trigger_time_ = ros::Time(0);
+  distance_budget_exploration_execution_active_ = false;
   distance_budget_has_last_odom_ = false;
   distance_budget_last_log_time_ = ros::Time(0);
 
@@ -1391,6 +1413,7 @@ void PlannerControlInterface::resetDistanceBudgetTracking(
 void PlannerControlInterface::updateDistanceBudgetFromOdom(
     const geometry_msgs::Point& position) {
   if (!isDistanceBudgetCountingActive()) {
+    distance_budget_has_last_odom_ = false;
     return;
   }
 
@@ -1400,16 +1423,14 @@ void PlannerControlInterface::updateDistanceBudgetFromOdom(
     return;
   }
 
-  Eigen::Vector3d prev(distance_budget_last_odom_position_.x,
-                       distance_budget_last_odom_position_.y,
-                       distance_budget_last_odom_position_.z);
-  Eigen::Vector3d curr(position.x, position.y, position.z);
-  const double step = (curr - prev).norm();
-  distance_budget_last_odom_position_ = position;
+  const double dx = position.x - distance_budget_last_odom_position_.x;
+  const double dy = position.y - distance_budget_last_odom_position_.y;
+  const double step = std::hypot(dx, dy);
 
   if (step > distance_budget_max_step_) {
+    distance_budget_last_odom_position_ = position;
     ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
-                  "[PCI][DIST_BUDGET] ignore odom jump step=%.3f max=%.3f "
+                  "[PCI][DIST_BUDGET] ignore xy odom jump step=%.3f max=%.3f "
                   "accumulated=%.2f limit=%.2f",
                   step, distance_budget_max_step_,
                   accumulated_exploration_distance_, distance_budget_limit_);
@@ -1420,6 +1441,7 @@ void PlannerControlInterface::updateDistanceBudgetFromOdom(
     return;
   }
 
+  distance_budget_last_odom_position_ = position;
   accumulated_exploration_distance_ += step;
 
   const ros::Time now = ros::Time::now();
@@ -1429,7 +1451,7 @@ void PlannerControlInterface::updateDistanceBudgetFromOdom(
            distance_budget_log_period_)) {
     ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                   "[PCI][DIST_BUDGET] accumulated=%.2f/%.2f step=%.3f "
-                  "trigger=AUTO",
+                  "trigger=AUTO metric=xy_anchor",
                   accumulated_exploration_distance_, distance_budget_limit_,
                   step);
     distance_budget_last_log_time_ = now;
@@ -1438,6 +1460,8 @@ void PlannerControlInterface::updateDistanceBudgetFromOdom(
   if (accumulated_exploration_distance_ >= distance_budget_limit_) {
     distance_budget_homing_latched_ = true;
     distance_budget_trigger_time_ = ros::Time::now();
+    distance_budget_exploration_execution_active_ = false;
+    distance_budget_has_last_odom_ = false;
     run_en_ = false;
     exe_path_en_ = true;
     homing_request_ = true;

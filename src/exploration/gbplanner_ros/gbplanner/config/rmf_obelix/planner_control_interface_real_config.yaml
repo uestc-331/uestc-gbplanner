@@ -22,9 +22,9 @@ stuck_timeout: 2.0
 stuck_min_progress: 0.15
 stuck_dist_margin: 0.03
 distance_budget_enable: true
-distance_budget_limit: 13.0
-distance_budget_max_step: 2.0
-distance_budget_min_step: 0.01
+distance_budget_limit: 30.0  # 里程计返航调这个
+distance_budget_max_step: 1.0
+distance_budget_min_step: 0.08
 distance_budget_log_period: 1.0
 distance_budget_release_timeout: 3.0
 interpolate_traj: true # 对路径点插值生成轨迹；建议保持 true，直接影响控制端轨迹连续性

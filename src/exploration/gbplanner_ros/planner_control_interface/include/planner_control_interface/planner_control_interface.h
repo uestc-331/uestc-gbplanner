@@ -182,6 +182,7 @@ class PlannerControlInterface {
   double accumulated_exploration_distance_ = 0.0;
   bool distance_budget_homing_latched_ = false;
   ros::Time distance_budget_trigger_time_;
+  bool distance_budget_exploration_execution_active_ = false;
   bool distance_budget_has_last_odom_ = false;
   geometry_msgs::Point distance_budget_last_odom_position_;
   ros::Time distance_budget_last_log_time_;

@@ -18,6 +18,11 @@
   <arg name="fixed_lidar_topic" default="/cloud_registered_fixed"/>
   <arg name="lidar_frame_id" default="$(arg robot_name)/$(arg robot_name)/velodyne"/>
   <arg name="pointcloud_simple_mode" default="false"/>
+  <!-- Keep virtual walls out of the real mapping point cloud by default.
+       Voxblox ray-carves free space toward every point, so fake wall points can
+       erase real side walls in TSDF/ESDF. Global z is enforced inside gbplanner
+       path feasibility instead. -->
+  <arg name="virtual_z_walls_enable" default="false"/>
 
   <arg name="gbplanner_config_file"
        default="$(find gbplanner)/config/$(arg robot_name)/gbplanner_config.yaml"/>
@@ -66,6 +71,15 @@
     <param name="fallback_to_frame_id_change" value="false"/>
     <param name="use_latest_transform_fallback" value="true"/>
     <param name="latest_transform_max_age_sec" value="0.05"/>
+    <param name="virtual_z_walls_enable" value="$(arg virtual_z_walls_enable)"/>
+    <param name="virtual_z_walls_bounds_param_ns" value="/gbplanner_node/BoundedSpaceParams/Global"/>
+    <param name="virtual_z_walls_frame" value="world"/>
+    <param name="virtual_z_walls_resolution" value="0.2"/>
+    <param name="virtual_z_walls_forward_length" value="8.0"/>
+    <param name="virtual_z_walls_backward_length" value="2.0"/>
+    <param name="virtual_z_walls_use_global_xy" value="false"/>
+    <param name="virtual_z_walls_add_min_z" value="true"/>
+    <param name="virtual_z_walls_add_max_z" value="true"/>
   </node>
 
   <group ns="$(arg robot_name)">

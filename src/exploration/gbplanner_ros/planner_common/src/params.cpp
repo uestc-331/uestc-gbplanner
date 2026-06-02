@@ -1181,7 +1181,13 @@ bool PlanningParams::loadParams(std::string ns) {
   if (!ros::param::get(param_name, path_safety_enhance_enable)) {
     path_safety_enhance_enable = false;
     ROSPARAM_WARN(param_name, "False");
-  }  
+  }
+
+  param_name = ns + "/enforce_global_bounds_on_paths";
+  if (!ros::param::get(param_name, enforce_global_bounds_on_paths)) {
+    enforce_global_bounds_on_paths = false;
+    ROSPARAM_WARN(param_name, "False");
+  }
 
   param_name = ns + "/global_frame_id";
   if (!ros::param::get(param_name, global_frame_id)) {

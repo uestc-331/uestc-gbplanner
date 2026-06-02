@@ -287,6 +287,19 @@ class Rrg {
                            bool stop_at_unknown_voxel,
                            bool log_failure = false,
                            const std::string& log_context = "");
+  bool isPointInsideGlobalPlanningBounds(const Eigen::Vector3d& point,
+                                         const Eigen::Vector3d& robot_size,
+                                         bool log_failure = false,
+                                         const std::string& log_context = "");
+  bool isSegmentInsideGlobalPlanningBounds(const Eigen::Vector3d& start,
+                                           const Eigen::Vector3d& end,
+                                           const Eigen::Vector3d& robot_size,
+                                           bool log_failure = false,
+                                           const std::string& log_context = "");
+  bool isPathInsideGlobalPlanningBounds(const std::vector<geometry_msgs::Pose>& path,
+                                        const Eigen::Vector3d& robot_size,
+                                        bool log_failure = false,
+                                        const std::string& log_context = "");
 
   bool setGlobalBound(planner_msgs::PlanningBound& bound,
                       bool reset_to_default = false);

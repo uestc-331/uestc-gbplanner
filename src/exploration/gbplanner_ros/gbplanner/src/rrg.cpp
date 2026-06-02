@@ -5911,6 +5911,7 @@ bool Rrg::improveFreePath(const std::vector<geometry_msgs::Pose>& path_orig,
   // obstacle
 
   if (path_orig.empty()) return false;
+  path_mod.clear();
 
   // Interpolate path
   std::vector<geometry_msgs::Pose> path_orig_interp = path_orig;
@@ -5920,6 +5921,10 @@ bool Rrg::improveFreePath(const std::vector<geometry_msgs::Pose>& path_orig,
   if (Trajectory::interpolatePath(path_orig, kInterpolationDistance,
                                   interp_path_orig)) {
     path_orig_interp = interp_path_orig;
+  }
+  if (!isPathInsideGlobalPlanningBounds(path_orig_interp, robot_box_size_, true,
+                                        "improveFreePath/input")) {
+    return false;
   }
 
   // Feature a) Remove short intermidiate vertices.
@@ -5944,7 +5949,9 @@ bool Rrg::improveFreePath(const std::vector<geometry_msgs::Pose>& path_orig,
         double segment_len = segment.norm();
         // ROS_WARN_COND(global_verbosity >= Verbosity::WARN, "Segment length %f.", segment_len);
         if (segment_len < kSegmentLenMin) {
-          if ((VoxelStatus::kFree ==
+          if (isSegmentInsideGlobalPlanningBounds(p_start, p_end,
+                                                  robot_box_size_) &&
+              (VoxelStatus::kFree ==
                map_manager_->getPathStatus(p_start, p_end, robot_box_size_,
                                            false)) &&
               (!planning_params_.geofence_checking_enable ||
@@ -6008,22 +6015,30 @@ bool Rrg::improveFreePath(const std::vector<geometry_msgs::Pose>& path_orig,
     if (robot_params_.type == RobotType::kAerialRobot) {
       VoxelStatus vs1 = map_manager_->getPathStatus(
           p0_mod, p1_parallel, robot_box_size_, true);
-      if (vs1 == VoxelStatus::kFree) e1_admissible = true;
+      if (vs1 == VoxelStatus::kFree &&
+          isSegmentInsideGlobalPlanningBounds(p0_mod, p1_parallel,
+                                              robot_box_size_))
+        e1_admissible = true;
       VoxelStatus vs2 =
           map_manager_->getPathStatus(p0_mod, p1, robot_box_size_, true);
-      if (vs2 == VoxelStatus::kFree) e2_admissible = true;
+      if (vs2 == VoxelStatus::kFree &&
+          isSegmentInsideGlobalPlanningBounds(p0_mod, p1, robot_box_size_))
+        e2_admissible = true;
     } else if (robot_params_.type == RobotType::kGroundRobot) {
       std::vector<Eigen::Vector3d> pr1, pr2;
       ProjectedEdgeStatus e_pr1, e_pr2;
       e_pr1 = getProjectedEdgeStatusEleMap(p0_mod, p1_parallel, robot_box_size_,
                                      false, pr1, false);
-      if (ProjectedEdgeStatus::kAdmissible == e_pr1 ||
-          ProjectedEdgeStatus::kSteep == e_pr1)
+      if ((ProjectedEdgeStatus::kAdmissible == e_pr1 ||
+           ProjectedEdgeStatus::kSteep == e_pr1) &&
+          isSegmentInsideGlobalPlanningBounds(p0_mod, p1_parallel,
+                                              robot_box_size_))
         e1_admissible = true;
       e_pr2 = getProjectedEdgeStatusEleMap(p0_mod, p1, robot_box_size_, false, pr2,
                                      false);
-      if (ProjectedEdgeStatus::kAdmissible == e_pr2 ||
-          ProjectedEdgeStatus::kSteep == e_pr2)
+      if ((ProjectedEdgeStatus::kAdmissible == e_pr2 ||
+           ProjectedEdgeStatus::kSteep == e_pr2) &&
+          isSegmentInsideGlobalPlanningBounds(p0_mod, p1, robot_box_size_))
         e2_admissible = true;
     }
     if (e1_admissible) {
@@ -6073,27 +6088,41 @@ bool Rrg::improveFreePath(const std::vector<geometry_msgs::Pose>& path_orig,
         (modifyPath(obstacle_pcl, p0_mod, p1_target, p1_mod));
     if (seg_free && modification_successful) {
       bool e1_admissible = false;
-      bool e2_admissible = false;
+      bool e2_admissible = !do_check_p2;
       if (robot_params_.type == RobotType::kAerialRobot) {
         VoxelStatus vs1 =
             map_manager_->getPathStatus(p0_mod, p1_mod, robot_box_size_, true);
-        if (vs1 == VoxelStatus::kFree) e1_admissible = true;
-        VoxelStatus vs2 =
-            map_manager_->getPathStatus(p1_mod, p2, robot_box_size_, true);
-        if (vs2 == VoxelStatus::kFree) e2_admissible = true;
+        if (vs1 == VoxelStatus::kFree &&
+            isSegmentInsideGlobalPlanningBounds(p0_mod, p1_mod,
+                                                robot_box_size_))
+          e1_admissible = true;
+        if (do_check_p2) {
+          VoxelStatus vs2 =
+              map_manager_->getPathStatus(p1_mod, p2, robot_box_size_, true);
+          if (vs2 == VoxelStatus::kFree &&
+              isSegmentInsideGlobalPlanningBounds(p1_mod, p2,
+                                                  robot_box_size_))
+            e2_admissible = true;
+        }
       } else if (robot_params_.type == RobotType::kGroundRobot) {
         std::vector<Eigen::Vector3d> pr1, pr2;
         ProjectedEdgeStatus es1, es2;
         es1 = getProjectedEdgeStatusEleMap(p0_mod, p1_mod, robot_box_size_, false,
                                      pr1, false);
         if (!(ProjectedEdgeStatus::kAdmissible != es1 &&
-              (!relaxed || ProjectedEdgeStatus::kSteep != es1)))
+              (!relaxed || ProjectedEdgeStatus::kSteep != es1)) &&
+            isSegmentInsideGlobalPlanningBounds(p0_mod, p1_mod,
+                                                robot_box_size_))
           e1_admissible = true;
-        es2 = getProjectedEdgeStatusEleMap(p1_mod, p2, robot_box_size_, false, pr2,
-                                     false);
-        if (!(ProjectedEdgeStatus::kAdmissible != es2 &&
-              (!relaxed || ProjectedEdgeStatus::kSteep != es2)))
-          e2_admissible = true;
+        if (do_check_p2) {
+          es2 = getProjectedEdgeStatusEleMap(p1_mod, p2, robot_box_size_, false, pr2,
+                                       false);
+          if (!(ProjectedEdgeStatus::kAdmissible != es2 &&
+                (!relaxed || ProjectedEdgeStatus::kSteep != es2)) &&
+              isSegmentInsideGlobalPlanningBounds(p1_mod, p2,
+                                                  robot_box_size_))
+            e2_admissible = true;
+        }
       }
 
       if (!(e1_admissible) ||
@@ -6156,6 +6185,10 @@ bool Rrg::improveFreePath(const std::vector<geometry_msgs::Pose>& path_orig,
   }
 
   visualization_->visualizePCL(feasible_corridor_pcl_.get());
+  if (!isPathInsideGlobalPlanningBounds(path_mod, robot_box_size_, true,
+                                        "improveFreePath/output")) {
+    return false;
+  }
   return mod_success;
 }
 
@@ -9347,6 +9380,13 @@ std::vector<geometry_msgs::Pose> Rrg::calculateGlobalPath(bool& homing_engaged)
     ret_path = interp_path;
   }
 
+  if (!ret_path.empty() &&
+      !isPathInsideGlobalPlanningBounds(ret_path, robot_box_size_, true,
+                                        "calculateGlobalPath/final")) {
+    ret_path.clear();
+    return ret_path;
+  }
+
   
   visualization_->visualizeRefPath(ret_path);
   return ret_path;
@@ -9776,6 +9816,13 @@ std::vector<geometry_msgs::Pose> Rrg::runGlobalPlanner(int vertex_id,
     ret_path = interp_path;
   }
 
+  if (!ret_path.empty() &&
+      !isPathInsideGlobalPlanningBounds(ret_path, robot_box_size_, true,
+                                        "runGlobalPlanner/final")) {
+    ret_path.clear();
+    return ret_path;
+  }
+
   
   visualization_->visualizeRefPath(ret_path);
   return ret_path;
@@ -9904,6 +9951,119 @@ void Rrg::setGlobalFrame(std::string frame_id) {
   if (!frame_id.empty()) visualization_->setGlobalFrame(frame_id);
 }
 
+bool Rrg::isPointInsideGlobalPlanningBounds(const Eigen::Vector3d& point,
+                                            const Eigen::Vector3d& robot_size,
+                                            bool log_failure,
+                                            const std::string& log_context) {
+  if (!planning_params_.enforce_global_bounds_on_paths) return true;
+
+  BoundedSpaceParams reduced_global_space = global_space_params_;
+  const Eigen::Vector3d half_size = 0.5 * robot_size;
+  bool valid_bound = true;
+
+  if (reduced_global_space.type == BoundedSpaceType::kCuboid) {
+    reduced_global_space.min_val += half_size;
+    reduced_global_space.max_val -= half_size;
+    for (int i = 0; i < 3; ++i) {
+      if (reduced_global_space.min_val[i] >
+          reduced_global_space.max_val[i]) {
+        valid_bound = false;
+        break;
+      }
+    }
+  } else if (reduced_global_space.type == BoundedSpaceType::kSphere) {
+    reduced_global_space.radius -= half_size.norm();
+    valid_bound = reduced_global_space.radius >= 0.0;
+  }
+  Eigen::Vector3d bound_center = reduced_global_space.getCenter();
+  reduced_global_space.setCenter(bound_center, false);
+
+  if (!valid_bound) {
+    if (log_failure) {
+      ROS_WARN(
+          "[RRG][GLOBAL_BOUND] %s invalid reduced Global bound after robot "
+          "size margin. robot_size=(%.3f, %.3f, %.3f) "
+          "bound_min=(%.3f, %.3f, %.3f) bound_max=(%.3f, %.3f, %.3f) "
+          "radius=%.3f",
+          log_context.c_str(), robot_size.x(), robot_size.y(), robot_size.z(),
+          reduced_global_space.min_val.x(), reduced_global_space.min_val.y(),
+          reduced_global_space.min_val.z(), reduced_global_space.max_val.x(),
+          reduced_global_space.max_val.y(), reduced_global_space.max_val.z(),
+          reduced_global_space.radius);
+    }
+    return false;
+  }
+
+  Eigen::Vector3d robot_center = point + robot_params_.center_offset;
+  Eigen::Vector3d point_to_check = robot_center;
+  const bool inside = reduced_global_space.isInsideSpace(point_to_check);
+  if (!inside && log_failure) {
+    ROS_WARN(
+        "[RRG][GLOBAL_BOUND] %s point outside reduced Global bound. "
+        "pose=(%.3f, %.3f, %.3f) robot_center=(%.3f, %.3f, %.3f) "
+        "robot_size=(%.3f, %.3f, %.3f) "
+        "bound_min=(%.3f, %.3f, %.3f) bound_max=(%.3f, %.3f, %.3f)",
+        log_context.c_str(), point.x(), point.y(), point.z(),
+        robot_center.x(), robot_center.y(), robot_center.z(),
+        robot_size.x(), robot_size.y(), robot_size.z(),
+        reduced_global_space.min_val.x(), reduced_global_space.min_val.y(),
+        reduced_global_space.min_val.z(), reduced_global_space.max_val.x(),
+        reduced_global_space.max_val.y(), reduced_global_space.max_val.z());
+  }
+  return inside;
+}
+
+bool Rrg::isSegmentInsideGlobalPlanningBounds(const Eigen::Vector3d& start,
+                                              const Eigen::Vector3d& end,
+                                              const Eigen::Vector3d& robot_size,
+                                              bool log_failure,
+                                              const std::string& log_context) {
+  if (!planning_params_.enforce_global_bounds_on_paths) return true;
+
+  const bool start_inside =
+      isPointInsideGlobalPlanningBounds(start, robot_size, false, log_context);
+  const bool end_inside =
+      isPointInsideGlobalPlanningBounds(end, robot_size, false, log_context);
+  const bool inside = start_inside && end_inside;
+  if (!inside && log_failure) {
+    ROS_WARN(
+        "[RRG][GLOBAL_BOUND] %s segment outside reduced Global bound. "
+        "start=(%.3f, %.3f, %.3f) end=(%.3f, %.3f, %.3f) "
+        "start_inside=%d end_inside=%d",
+        log_context.c_str(), start.x(), start.y(), start.z(), end.x(),
+        end.y(), end.z(), start_inside, end_inside);
+  }
+  return inside;
+}
+
+bool Rrg::isPathInsideGlobalPlanningBounds(
+    const std::vector<geometry_msgs::Pose>& path,
+    const Eigen::Vector3d& robot_size,
+    bool log_failure,
+    const std::string& log_context) {
+  if (!planning_params_.enforce_global_bounds_on_paths) return true;
+  if (path.empty()) return true;
+
+  if (path.size() == 1) {
+    Eigen::Vector3d point(path[0].position.x, path[0].position.y,
+                          path[0].position.z);
+    return isPointInsideGlobalPlanningBounds(point, robot_size, log_failure,
+                                             log_context);
+  }
+
+  for (int i = 0; i < (path.size() - 1); ++i) {
+    Eigen::Vector3d start(path[i].position.x, path[i].position.y,
+                          path[i].position.z);
+    Eigen::Vector3d end(path[i + 1].position.x, path[i + 1].position.y,
+                        path[i + 1].position.z);
+    if (!isSegmentInsideGlobalPlanningBounds(start, end, robot_size,
+                                             log_failure, log_context)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
                               const Eigen::Vector3d& robot_size) {
   return isPathCollisionFree(path, robot_size, true);
@@ -9915,6 +10075,10 @@ bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
                               bool log_failure,
                               const std::string& log_context) {
   if (path.empty()) return true;  // nothing to check
+  if (!isPathInsideGlobalPlanningBounds(path, robot_size, log_failure,
+                                        log_context)) {
+    return false;
+  }
 
   Eigen::Vector3d voxel(path[0].position.x, path[0].position.y,
                         path[0].position.z);

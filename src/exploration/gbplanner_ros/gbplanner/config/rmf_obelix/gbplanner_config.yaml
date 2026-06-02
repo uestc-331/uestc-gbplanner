@@ -72,8 +72,8 @@ BoundedSpaceParams:
     # 第三个数是 Z 方向绝对下限/上限；实机限高优先改 max_val 的第三个数。
     # min_val:        [-1.0, -60.0, -1.0]
     # max_val:        [30.0, 60.0, 3.0]
-    min_val:        [-1.0, -1.0, -1.0]
-    max_val:        [20.0, 20.0, 1.2]
+    min_val:        [-1.0, -12.0, -1.0]
+    max_val:        [20.0, 1.0, 1.4]
   Local:
     type:           kCuboid
     # 局部边界是相对当前无人机位置的采样范围。
@@ -234,7 +234,7 @@ PlanningParams:
   clustering_radius: 0.8
   path_interpolation_distance: 0.4 # 路径插值间距；越小路径点越密、执行更连续，但消息/计算量更大；想更顺可试 0.3
   
-  time_budget_limit: 150.0 # 时间返航调这个
+  time_budget_limit: 3000.0 # 时间返航调这个
    # seconds
   auto_homing_enable: true
   go_home_if_fully_explored: true

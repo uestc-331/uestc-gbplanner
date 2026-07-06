@@ -10,6 +10,7 @@ add_definitions(-std=c++17)
 # We need Gazebo version >= 3.0.0 to generate iris.sdf file
 # (gz sdf ... command needs to be available)
 find_package(gazebo REQUIRED)
+find_program(XACRO_EXECUTABLE xacro REQUIRED)
 
 if(${gazebo_VERSION_MAJOR} GREATER 2)
     message(STATUS "Building iris.sdf.")
@@ -19,14 +20,16 @@ if(${gazebo_VERSION_MAJOR} GREATER 2)
     set(enable_logging "false")
     set(enable_camera "false")
     set(enable_wind "false")
-    set(rotors_description_dir "${CMAKE_CURRENT_SOURCE_DIR}/models/rotors_description")
+    set(namespace "iris")
+    set(rotors_description_dir "${CMAKE_CURRENT_SOURCE_DIR}/../rotors_description")
     set(scripts_dir "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
     
     # Creates shell commands to generate .sdf file
     add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/models/iris/iris.sdf
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/models/iris
       COMMAND rm -f ${CMAKE_CURRENT_SOURCE_DIR}/models/iris/iris.sdf
-      COMMAND python3 ${scripts_dir}/xacro.py -o  ${rotors_description_dir}/urdf/iris_base.urdf  ${rotors_description_dir}/urdf/iris_base.xacro enable_mavlink_interface:=${enable_mavlink_interface} enable_ground_truth:=${enable_ground_truth} enable_wind:=${enable_wind} enable_logging:=${enable_logging} rotors_description_dir:=${rotors_description_dir}
+      COMMAND ${XACRO_EXECUTABLE} -o ${rotors_description_dir}/urdf/iris_base.urdf ${rotors_description_dir}/urdf/iris_base.xacro namespace:=${namespace} enable_mavlink_interface:=${enable_mavlink_interface} enable_ground_truth:=${enable_ground_truth} enable_wind:=${enable_wind} enable_logging:=${enable_logging} rotors_description_dir:=${rotors_description_dir} log_file:=/tmp/iris.bag wait_to_record_bag:=false
       COMMAND gz sdf -p  ${rotors_description_dir}/urdf/iris_base.urdf >> ${CMAKE_CURRENT_SOURCE_DIR}/models/iris/iris.sdf
       COMMAND rm -f ${rotors_description_dir}/urdf/iris_base.urdf
       DEPENDS ${rotors_description_dir}/urdf/iris.xacro

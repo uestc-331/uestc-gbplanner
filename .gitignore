@@ -39,6 +39,17 @@ __pycache__/
 *.dll
 *.exe
 
+# Keep the small PX4/Gazebo assets needed to reproduce this simulation.
+!/external/
+!/external/px4_sim_assets/
+!/external/px4_sim_assets/**
+
+# Heavy simulation model assets
+/src/sim/subt_cave_sim/models/
+/src/sim/rotors_simulator/rotors_description/meshes/
+/src/sim/rotors_simulator/rotors_gazebo/models/
+/src/sim/arl_gazebo_sim_ros/arl_gazebo_sim/gz/
+
 # Large simulation assets that exceed or approach GitHub's normal file limit.
 # Use Git LFS or external storage if these assets must be shared.
 src/sim/subt_cave_sim/models/megacavern/2/meshes/megacaverns.dae

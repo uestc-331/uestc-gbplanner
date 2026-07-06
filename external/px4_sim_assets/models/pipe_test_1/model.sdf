@@ -1,0 +1,27 @@
+<?xml version='1.0'?>
+<sdf version="1.6">
+
+  <model name="pipe_test_1">
+    <static>true</static>
+
+    <link name="link">
+      <pose>0 0 0 0 0 0</pose>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>model://pipe_test_1/meshes/pipe.dae</uri>
+          </mesh>
+        </geometry>
+      </collision>
+
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://pipe_test_1/meshes/pipe.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+
+  </model>
+</sdf>

@@ -6,8 +6,8 @@
 RobotParams:
   type:               kAerialRobot
   # size:               [0.4, 0.0, 0.0] # Actual size of the robot in meters [x, y, z]
-  size:               [0.4, 0.4, 0.4] # Actual size of the robot in meters [x, y, z]
-  size_extension_min: [0.1, 0.1, 0.1] # minimum extension outside of robot size allowed to operate
+  size:               [0.35, 0.35, 0.35] # Actual size of the robot in meters [x, y, z]
+  size_extension_min: [0.15, 0.15, 0.15] # minimum extension outside of robot size allowed to operate
   size_extension:     [0.4, 0.4, 0.4] # maximum extension outside of the robot size
   center_offset:      [0.0, 0.0, 0.0]
   relax_ratio:        0.5 # Used to define an intermediate size between size_extension_min and size_extension for planning
@@ -38,7 +38,7 @@ SensorParams:
     resolution:     [rad(4.0*pi/180), rad(4.0*pi/180)]
     frontier_percentage_threshold: 0.01
   Cam:
-    type:           kLidar                                
+    type:           kLidar
     CameraType:     kRotating
     rot_lims:       [-1.57, 1.57]
     max_range:      2.5
@@ -61,27 +61,41 @@ CameraAnnotationParams:
     resolution:     [rad(2.0*pi/180), rad(2.0*pi/180)]
     frontier_percentage_threshold: 0.01
 #-------------------------------------------------------------------------------
-# SAMPLING SPACE CONFIGURATION
-#   Global: Strictly defined bounds for the whole environment.
-#   Local: Define a local space wrt current robot state for planning.
+# 采样空间配置
+#   Global: 全局绝对边界，定义整个环境允许规划的范围。
+#   Local: 局部相对边界，定义相对当前无人机位置的局部规划采样范围。
 #-------------------------------------------------------------------------------
 BoundedSpaceParams:
   Global:
     type:           kCuboid
-    min_val:        [-1.0, -60.0, -1.0]
-    max_val:        [29.0, 60.0, 3.0]
+    # 全局绝对边界，最终采样/规划不会超过这个范围。
+    # 第三个数是 Z 方向绝对下限/上限；实机限高优先改 max_val 的第三个数。
+    # min_val:        [-1.0, -60.0, -1.0]
+    # max_val:        [30.0, 60.0, 3.0]
+    min_val:        [-1.0, -1.0, -0.3]
+    max_val:        [12.0, 8.0, 1.8]
   Local:
     type:           kCuboid
-    # min_val:        [-7.5, -7.5, -7.0]
-    # max_val:        [7.5, 7.5, 7.0]
-    min_val:        [-20.0, -20.0, -3.0]
-    max_val:        [20.0, 20.0, 3.0]
+    # 局部边界是相对当前无人机位置的采样范围。
+    # 例如 Z=[-0.25, 0.25] 表示每次局部探索只允许在当前高度上下 0.25m 内采样。
+    min_val:        [-7.5, -7.5, -0.60]
+    max_val:        [7.5, 7.5, 0.50]
+    # min_val:        [-20.0, -20.0, -3.0]
+    # max_val:        [20.0, 20.0, 3.0]
     # min_val:        [-20.0, -20.0, -4.0]
     # max_val:        [20.0, 20.0, 4.0]
     # min_val:        [-10.0, -10.0, -4.0]
     # max_val:        [10.0, 10.0, 4.0]
-    min_extension:  [-10.0, -10.0, -10.0]
-    max_extension:  [10.0, 10.0, 10.0]
+    # min_extension:  [-10.0, -10.0, -10.0]
+    # max_extension:  [10.0, 10.0, 10.0]
+    # extension 会在局部边界外再扩一圈：
+    #   bound_min = current_state + min_val + min_extension
+    #   bound_max = current_state + max_val + max_extension
+    # min_extension 是负方向扩展，不是“最小高度”；max_extension 是正方向扩展。
+    # 为避免实机突然往高处采样，Z 方向 extension 建议保持 0.0。
+    min_extension:  [-5.0, -5.0, 0.0]
+    max_extension:  [5.0, 5.0, 0.0]
+
   LocalSearch:
     type:           kCuboid
     min_val:        [-80.0, -80.0, -1.0]
@@ -172,20 +186,24 @@ PlanningParams:
   # exp_sensor_list:  ["CamF"]
   inspection_sensor_list:  ["Cam"]
   # no_gain_zones_list: ["g1"]
-  v_max:            0.1 # max velocity m/s
-  v_homing_max:     0.2 # max velocity m/s
-  yaw_rate_max:     0.1 # max angular velocity rad/s
-  yaw_tangent_correction: true # If true - all headings will be along the path segment
-  edge_length_min:  0.2
-  edge_length_max:  1.0
-  edge_overshoot:   0.25 # m - Account for possible tracking error by collision checking on an extended edge
-  num_vertices_max: 500 # graph building stops if these many vertices are added 
-  num_edges_max:    7000 # graph building stops if these many edges are added
-  num_loops_cutoff: 1500 # Maximum iterations in which no vertices or edges are added to the graph
-  num_loops_max:    3000 # Maximum iterations possible for graph building
-  nearest_range:    2.0 # The max range within which a new vertex can be connected to an existing vertex
-  nearest_range_min: 0.5 # >= edge_length_min
-  nearest_range_max: 2.0 # <= edge_length_max
+  v_max:            0.1 # max velocity m/s；规划器估计探索路径耗时用，主要影响时间预算/路径评分，不是最终控制速度
+  v_homing_max:     0.1 # max velocity m/s；规划器估计回家耗时用，time_to_home = homing_path_length / v_homing_max
+  yaw_rate_max:     0.1 # max angular velocity rad/s；规划器估计转向耗时用，数值越小越保守
+  yaw_tangent_correction: true # true 时让 yaw 沿路径切线方向，通常能减少朝向突变，让路径朝向更顺
+  edge_length_min:  0.2 # RRG 单条边最短长度；太小会增加节点密度和计算量
+  edge_length_max:  0.8 # RRG 单条边最大长度；越大路径点越稀疏、折线感可能更强，想更细腻可适当减小
+  edge_overshoot:   0.25 # m - 碰撞检查时向边两端外扩，考虑跟踪误差；偏大更保守，可能让路径绕得更多
+
+  num_vertices_max: 200 # 最多造多少个有效点；越多搜索更充分，可能路径质量更好，但规划更慢
+  num_edges_max:    2000 # 最多连多少条有效边；越多图更密，可能更容易找到顺路，但计算量上升
+  num_loops_cutoff: 500 # 连续失败多少次后停止建图；太小可能过早停止，路径选择不充分
+  num_loops_max:    600 # 最多总共尝试多少次采样/扩展；太小会减少搜索充分性，不是直接平滑参数
+
+  # 路径平滑性相关：edge_length_max / nearest_range / path_interpolation_distance 最直接影响路径几何折线感。
+  # edge_length_max 和 nearest_range 偏大时，可能出现跨度大的边；偏小时路径更密但规划更慢。
+  nearest_range:    2.0 # The max range within which a new vertex can be connected to an existing vertex；偏大可能连出长边，路径更硬
+  nearest_range_min: 0.5 # >= edge_length_min；邻接范围下限，影响局部连边密度
+  nearest_range_max: 2.0 # <= edge_length_max；邻接范围上限，想减少大跨度连边可适当降低
   use_current_state: true # If true, it will use the current state to plan from instead of the state provided by the PCI in the service call
   use_ray_model_for_volumetric_gain: true # if false, will check voxel by voxel in the sensor frustum 
   exp_gain_voxel_size: 0.8 # used if use_ray_model_for_volumetric_gain is false
@@ -193,7 +211,7 @@ PlanningParams:
   path_length_penalty: 0.07
   path_direction_penalty: 0.0
   occupied_voxel_gain: 0.0
-  free_voxel_gain:  0.0 # prefer directions towards more free voxels in case of the dead-end
+  free_voxel_gain:  2.0 # prefer directions towards more free voxels in case of the dead-end
   unknown_voxel_gain: 40.0
   path_history_penalty: 3.0
   path_history_size: 4
@@ -206,16 +224,18 @@ PlanningParams:
 
   traverse_length_max: 20.0 # Maximum local exploration path length before global reposition
   traverse_time_max: 500.0
-  path_safety_enhance_enable: true
+  path_safety_enhance_enable: true # 对最终路径做安全增强/避障修正；主要提升安全，不一定总是更平滑
+  enforce_global_bounds_on_paths: true # 将 Global 边界作为路径可行性硬约束，防止路径后处理越过限高/限宽
   augment_free_voxels_time: 3
   free_frustum_before_planning: true
   freespace_cloud_enable: false
   leafs_only_for_volumetric_gain: true # Whether to calculate gain of the entire path or only the leaf nodes
   cluster_vertices_for_gain: true
   clustering_radius: 0.8
-  path_interpolation_distance: 0.5
+  path_interpolation_distance: 0.4 # 路径插值间距；越小路径点越密、执行更连续，但消息/计算量更大；想更顺可试 0.3
   
-  time_budget_limit: 360 # seconds
+  time_budget_limit: 3000.0 # 时间返航调这个
+   # seconds
   auto_homing_enable: true
   go_home_if_fully_explored: true
 
@@ -227,7 +247,7 @@ PlanningParams:
   
   inspection_planning: false
 
-  keep_leaf_yaw_only: true
+  keep_leaf_yaw_only: true # 保留叶子目标点 yaw；利于看向高增益方向，但局部可能带来 yaw 跳变
 
   enable_manhole_traversal: false
   manhole_alignment_z_offset: 0.0 # -0.25

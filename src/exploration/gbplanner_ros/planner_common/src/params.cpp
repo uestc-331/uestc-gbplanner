@@ -1105,6 +1105,339 @@ bool PlanningParams::loadParams(std::string ns) {
     ROSPARAM_WARN(param_name, path_reverse_dot_threshold);
   }
 
+  param_name = ns + "/wall_clearance_enable";
+  if (!ros::param::get(param_name, wall_clearance_enable)) {
+    wall_clearance_enable = false;
+    ROSPARAM_WARN(param_name, wall_clearance_enable);
+  }
+
+  param_name = ns + "/wall_clearance_min";
+  if (!ros::param::get(param_name, wall_clearance_min)) {
+    wall_clearance_min = 0.55;
+    ROSPARAM_WARN(param_name, wall_clearance_min);
+  }
+
+  param_name = ns + "/wall_clearance_soft";
+  if (!ros::param::get(param_name, wall_clearance_soft)) {
+    wall_clearance_soft = 1.0;
+    ROSPARAM_WARN(param_name, wall_clearance_soft);
+  }
+
+  param_name = ns + "/wall_clearance_penalty";
+  if (!ros::param::get(param_name, wall_clearance_penalty)) {
+    wall_clearance_penalty = 2.0;
+    ROSPARAM_WARN(param_name, wall_clearance_penalty);
+  }
+
+  param_name = ns + "/wall_clearance_sample_step";
+  if (!ros::param::get(param_name, wall_clearance_sample_step)) {
+    wall_clearance_sample_step = 0.30;
+    ROSPARAM_WARN(param_name, wall_clearance_sample_step);
+  }
+
+  param_name = ns + "/wall_clearance_reject_final_path";
+  if (!ros::param::get(param_name, wall_clearance_reject_final_path)) {
+    wall_clearance_reject_final_path = false;
+    ROSPARAM_WARN(param_name, wall_clearance_reject_final_path);
+  }
+
+  if (wall_clearance_soft < wall_clearance_min) {
+    ROS_WARN(
+        "[PlanningParams] wall_clearance_soft %.2f < wall_clearance_min %.2f; "
+        "using min as soft threshold.",
+        wall_clearance_soft, wall_clearance_min);
+    wall_clearance_soft = wall_clearance_min;
+  }
+  if (wall_clearance_sample_step <= 0.0) {
+    ROS_WARN(
+        "[PlanningParams] wall_clearance_sample_step %.2f is invalid; using "
+        "0.30.",
+        wall_clearance_sample_step);
+    wall_clearance_sample_step = 0.30;
+  }
+
+  param_name = ns + "/centerline_bias_enable";
+  if (!ros::param::get(param_name, centerline_bias_enable)) {
+    centerline_bias_enable = false;
+    ROSPARAM_WARN(param_name, centerline_bias_enable);
+  }
+
+  param_name = ns + "/centerline_clearance_target";
+  if (!ros::param::get(param_name, centerline_clearance_target)) {
+    centerline_clearance_target = 1.40;
+    ROSPARAM_WARN(param_name, centerline_clearance_target);
+  }
+
+  param_name = ns + "/centerline_penalty";
+  if (!ros::param::get(param_name, centerline_penalty)) {
+    centerline_penalty = 1.5;
+    ROSPARAM_WARN(param_name, centerline_penalty);
+  }
+
+  param_name = ns + "/centerline_sample_step";
+  if (!ros::param::get(param_name, centerline_sample_step)) {
+    centerline_sample_step = wall_clearance_sample_step;
+    ROSPARAM_WARN(param_name, centerline_sample_step);
+  }
+
+  param_name = ns + "/path_smoothness_enable";
+  if (!ros::param::get(param_name, path_smoothness_enable)) {
+    path_smoothness_enable = false;
+    ROSPARAM_WARN(param_name, path_smoothness_enable);
+  }
+
+  param_name = ns + "/path_smoothness_penalty";
+  if (!ros::param::get(param_name, path_smoothness_penalty)) {
+    path_smoothness_penalty = 1.0;
+    ROSPARAM_WARN(param_name, path_smoothness_penalty);
+  }
+
+  param_name = ns + "/final_shortcut_enable";
+  if (!ros::param::get(param_name, final_shortcut_enable)) {
+    final_shortcut_enable = false;
+    ROSPARAM_WARN(param_name, final_shortcut_enable);
+  }
+
+  param_name = ns + "/final_shortcut_max_skip";
+  if (!ros::param::get(param_name, final_shortcut_max_skip)) {
+    final_shortcut_max_skip = 8;
+    ROSPARAM_WARN(param_name, final_shortcut_max_skip);
+  }
+
+  param_name = ns + "/final_shortcut_min_savings";
+  if (!ros::param::get(param_name, final_shortcut_min_savings)) {
+    final_shortcut_min_savings = 0.20;
+    ROSPARAM_WARN(param_name, final_shortcut_min_savings);
+  }
+
+  param_name = ns + "/final_shortcut_clearance_margin";
+  if (!ros::param::get(param_name, final_shortcut_clearance_margin)) {
+    final_shortcut_clearance_margin = 0.05;
+    ROSPARAM_WARN(param_name, final_shortcut_clearance_margin);
+  }
+
+  if (centerline_clearance_target < wall_clearance_min) {
+    ROS_WARN(
+        "[PlanningParams] centerline_clearance_target %.2f < "
+        "wall_clearance_min %.2f; using wall_clearance_min.",
+        centerline_clearance_target, wall_clearance_min);
+    centerline_clearance_target = wall_clearance_min;
+  }
+  if (centerline_sample_step <= 0.0) {
+    ROS_WARN(
+        "[PlanningParams] centerline_sample_step %.2f is invalid; using "
+        "wall_clearance_sample_step %.2f.",
+        centerline_sample_step, wall_clearance_sample_step);
+    centerline_sample_step = wall_clearance_sample_step;
+  }
+  centerline_penalty = std::max(0.0, centerline_penalty);
+  path_smoothness_penalty = std::max(0.0, path_smoothness_penalty);
+  if (final_shortcut_max_skip < 1) {
+    ROS_WARN(
+        "[PlanningParams] final_shortcut_max_skip %d is invalid; using 1.",
+        final_shortcut_max_skip);
+    final_shortcut_max_skip = 1;
+  }
+  final_shortcut_min_savings = std::max(0.0, final_shortcut_min_savings);
+  final_shortcut_clearance_margin =
+      std::max(0.0, final_shortcut_clearance_margin);
+
+  param_name = ns + "/forward_exploration_enable";
+  if (!ros::param::get(param_name, forward_exploration_enable)) {
+    forward_exploration_enable = false;
+    ROSPARAM_WARN(param_name, forward_exploration_enable);
+  }
+
+  param_name = ns + "/forward_exploration_min_dot";
+  if (!ros::param::get(param_name, forward_exploration_min_dot)) {
+    forward_exploration_min_dot = 0.25;
+    ROSPARAM_WARN(param_name, forward_exploration_min_dot);
+  }
+
+  param_name = ns + "/forward_exploration_soft_dot";
+  if (!ros::param::get(param_name, forward_exploration_soft_dot)) {
+    forward_exploration_soft_dot = 0.70;
+    ROSPARAM_WARN(param_name, forward_exploration_soft_dot);
+  }
+
+  param_name = ns + "/forward_exploration_penalty";
+  if (!ros::param::get(param_name, forward_exploration_penalty)) {
+    forward_exploration_penalty = 2.0;
+    ROSPARAM_WARN(param_name, forward_exploration_penalty);
+  }
+
+  param_name = ns + "/forward_completion_only";
+  if (!ros::param::get(param_name, forward_completion_only)) {
+    forward_completion_only = false;
+    ROSPARAM_WARN(param_name, forward_completion_only);
+  }
+
+  param_name = ns + "/forward_completion_min_valid_paths";
+  if (!ros::param::get(param_name, forward_completion_min_valid_paths)) {
+    forward_completion_min_valid_paths = 1;
+    ROSPARAM_WARN(param_name, forward_completion_min_valid_paths);
+  }
+
+  forward_exploration_min_dot =
+      std::max(-1.0, std::min(1.0, forward_exploration_min_dot));
+  forward_exploration_soft_dot =
+      std::max(-1.0, std::min(1.0, forward_exploration_soft_dot));
+  if (forward_exploration_soft_dot < forward_exploration_min_dot) {
+    ROS_WARN(
+        "[PlanningParams] forward_exploration_soft_dot %.2f < "
+        "forward_exploration_min_dot %.2f; using min as soft threshold.",
+        forward_exploration_soft_dot, forward_exploration_min_dot);
+    forward_exploration_soft_dot = forward_exploration_min_dot;
+  }
+  if (forward_completion_min_valid_paths < 1) {
+    ROS_WARN(
+        "[PlanningParams] forward_completion_min_valid_paths %d is invalid; "
+        "using 1.",
+        forward_completion_min_valid_paths);
+    forward_completion_min_valid_paths = 1;
+  }
+
+  param_name = ns + "/start_recovery_enable";
+  if (!ros::param::get(param_name, start_recovery_enable)) {
+    start_recovery_enable = false;
+    ROSPARAM_WARN(param_name, start_recovery_enable);
+  }
+
+  param_name = ns + "/start_recovery_radius_min";
+  if (!ros::param::get(param_name, start_recovery_radius_min)) {
+    start_recovery_radius_min = 0.3;
+    ROSPARAM_WARN(param_name, start_recovery_radius_min);
+  }
+
+  param_name = ns + "/start_recovery_radius_max";
+  if (!ros::param::get(param_name, start_recovery_radius_max)) {
+    start_recovery_radius_max = 1.5;
+    ROSPARAM_WARN(param_name, start_recovery_radius_max);
+  }
+
+  param_name = ns + "/start_recovery_radius_step";
+  if (!ros::param::get(param_name, start_recovery_radius_step)) {
+    start_recovery_radius_step = 0.2;
+    ROSPARAM_WARN(param_name, start_recovery_radius_step);
+  }
+
+  param_name = ns + "/start_recovery_angle_step_deg";
+  if (!ros::param::get(param_name, start_recovery_angle_step_deg)) {
+    start_recovery_angle_step_deg = 20.0;
+    ROSPARAM_WARN(param_name, start_recovery_angle_step_deg);
+  }
+
+  param_name = ns + "/start_recovery_prefer_forward";
+  if (!ros::param::get(param_name, start_recovery_prefer_forward)) {
+    start_recovery_prefer_forward = true;
+    ROSPARAM_WARN(param_name, start_recovery_prefer_forward);
+  }
+
+  param_name = ns + "/start_recovery_allow_unknown";
+  if (!ros::param::get(param_name, start_recovery_allow_unknown)) {
+    start_recovery_allow_unknown = false;
+    ROSPARAM_WARN(param_name, start_recovery_allow_unknown);
+  }
+
+  param_name = ns + "/start_recovery_min_clearance";
+  if (!ros::param::get(param_name, start_recovery_min_clearance)) {
+    start_recovery_min_clearance = 0.45;
+    ROSPARAM_WARN(param_name, start_recovery_min_clearance);
+  }
+
+  param_name = ns + "/start_recovery_ignore_start_dist";
+  if (!ros::param::get(param_name, start_recovery_ignore_start_dist)) {
+    start_recovery_ignore_start_dist = 0.25;
+    ROSPARAM_WARN(param_name, start_recovery_ignore_start_dist);
+  }
+
+  param_name = ns + "/start_recovery_path_resolution";
+  if (!ros::param::get(param_name, start_recovery_path_resolution)) {
+    start_recovery_path_resolution = 0.25;
+    ROSPARAM_WARN(param_name, start_recovery_path_resolution);
+  }
+
+  param_name = ns + "/dirty_start_edge_tolerance_enable";
+  if (!ros::param::get(param_name, dirty_start_edge_tolerance_enable)) {
+    dirty_start_edge_tolerance_enable = false;
+    ROSPARAM_WARN(param_name, dirty_start_edge_tolerance_enable);
+  }
+
+  param_name = ns + "/dirty_start_edge_tolerance_dist";
+  if (!ros::param::get(param_name, dirty_start_edge_tolerance_dist)) {
+    dirty_start_edge_tolerance_dist = start_recovery_ignore_start_dist;
+    ROSPARAM_WARN(param_name, dirty_start_edge_tolerance_dist);
+  }
+
+  param_name = ns + "/dirty_root_escape_enable";
+  if (!ros::param::get(param_name, dirty_root_escape_enable)) {
+    dirty_root_escape_enable = false;
+    ROSPARAM_WARN(param_name, dirty_root_escape_enable);
+  }
+
+  param_name = ns + "/dirty_root_escape_dist";
+  if (!ros::param::get(param_name, dirty_root_escape_dist)) {
+    dirty_root_escape_dist = dirty_start_edge_tolerance_dist;
+    ROSPARAM_WARN(param_name, dirty_root_escape_dist);
+  }
+
+  param_name = ns + "/dirty_root_escape_min_clearance_gain";
+  if (!ros::param::get(param_name, dirty_root_escape_min_clearance_gain)) {
+    dirty_root_escape_min_clearance_gain = 0.15;
+    ROSPARAM_WARN(param_name, dirty_root_escape_min_clearance_gain);
+  }
+
+  param_name = ns + "/dirty_root_escape_min_target_clearance";
+  if (!ros::param::get(param_name, dirty_root_escape_min_target_clearance)) {
+    dirty_root_escape_min_target_clearance = start_recovery_min_clearance;
+    ROSPARAM_WARN(param_name, dirty_root_escape_min_target_clearance);
+  }
+
+  if (start_recovery_radius_min < 0.05) {
+    ROS_WARN("[PlanningParams] start_recovery_radius_min %.2f is too small; "
+             "using 0.05.",
+             start_recovery_radius_min);
+    start_recovery_radius_min = 0.05;
+  }
+  if (start_recovery_radius_max < start_recovery_radius_min) {
+    ROS_WARN(
+        "[PlanningParams] start_recovery_radius_max %.2f < min %.2f; using "
+        "min.",
+        start_recovery_radius_max, start_recovery_radius_min);
+    start_recovery_radius_max = start_recovery_radius_min;
+  }
+  if (start_recovery_radius_step <= 0.0) {
+    ROS_WARN("[PlanningParams] start_recovery_radius_step %.2f is invalid; "
+             "using 0.2.",
+             start_recovery_radius_step);
+    start_recovery_radius_step = 0.2;
+  }
+  if (start_recovery_angle_step_deg <= 0.0 ||
+      start_recovery_angle_step_deg > 180.0) {
+    ROS_WARN(
+        "[PlanningParams] start_recovery_angle_step_deg %.2f is invalid; "
+        "using 20.0.",
+        start_recovery_angle_step_deg);
+    start_recovery_angle_step_deg = 20.0;
+  }
+  start_recovery_min_clearance =
+      std::max(0.0, start_recovery_min_clearance);
+  start_recovery_ignore_start_dist =
+      std::max(0.0, start_recovery_ignore_start_dist);
+  dirty_start_edge_tolerance_dist =
+      std::max(0.0, dirty_start_edge_tolerance_dist);
+  dirty_root_escape_dist = std::max(0.0, dirty_root_escape_dist);
+  dirty_root_escape_min_clearance_gain =
+      std::max(0.0, dirty_root_escape_min_clearance_gain);
+  dirty_root_escape_min_target_clearance =
+      std::max(0.0, dirty_root_escape_min_target_clearance);
+  if (start_recovery_path_resolution <= 0.0) {
+    ROS_WARN("[PlanningParams] start_recovery_path_resolution %.2f is "
+             "invalid; using 0.25.",
+             start_recovery_path_resolution);
+    start_recovery_path_resolution = 0.25;
+  }
+
   param_name = ns + "/min_gain_threshold";
   if (!ros::param::get(param_name, min_gain_threshold)) {
     min_gain_threshold = 100.0;

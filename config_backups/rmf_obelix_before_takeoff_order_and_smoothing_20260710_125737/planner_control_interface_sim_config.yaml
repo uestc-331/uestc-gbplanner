@@ -1,0 +1,49 @@
+run_mode: kSim
+trigger_mode: kManual
+robot_type: kAerial
+output_type: kTopic
+init_motion_enable: true
+planner_trigger_lead_time: 0.4 #0.3
+smooth_heading_enable: true
+reconnect_path: false
+set_first_wp_speed: true
+# path_end_dist_thr: 1.2
+# path_end_yaw_thr: 0.6
+# path_progression_dist_thr: 1.5
+# path_progression_yaw_thr: 0.7
+path_end_dist_thr: 0.8
+path_end_yaw_thr: 0.4
+path_progression_dist_thr: 0.9
+path_progression_dist_thr_min: 0.60
+path_progression_yaw_thr: 0.4
+path_progression_pitch_thr: 0.4
+stuck_detection_enable: true
+stuck_timeout: 4.0
+stuck_min_progress: 0.15
+stuck_dist_margin: 0.25
+distance_budget_enable: true
+distance_budget_limit: 3000
+distance_budget_max_step: 1.0
+distance_budget_min_step: 0.08
+distance_budget_log_period: 1.0
+distance_budget_release_timeout: 3.0
+interpolate_traj: true
+use_time_from_start: true
+travel_backward: false
+init_motion:
+  z_takeoff: 1.7
+  z_drop: 0.2
+  x_forward: 0.5
+# init_motion:
+#   z_takeoff: 4.0
+#   z_drop: 2.3
+#   x_forward: 0.5
+
+# Group related parameters to be shared between nodes.
+RobotDynamics:
+  v_max: 0.6 # 1.0
+  v_init_max: 0.6 # 1.0
+  v_homing_max: 0.6 # 1.0
+  yaw_rate_max: 0.1 # 0.3
+  dt: 0.05
+  a_max: 1.5 # 0.5

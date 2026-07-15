@@ -1,0 +1,44 @@
+run_mode: kReal
+trigger_mode: kManual
+robot_type: kAerial
+output_type: kTopic
+init_motion_enable: false
+planner_trigger_lead_time: 0.4 #0.3；提前触发下一次规划的时间，太大可能更积极重规划
+smooth_heading_enable: true # 平滑执行路径的 yaw，减少朝向突变；影响实际发给控制端的轨迹平滑性
+reconnect_path: false # 是否尝试把新旧路径重连；开启可能减少切换突变，但也可能改变局部路径
+set_first_wp_speed: true # 给第一个 waypoint 设置速度，通常能减少起步/切换时的速度突变
+# path_end_dist_thr: 1.2
+# path_end_yaw_thr: 0.6
+# path_progression_dist_thr: 1.5
+# path_progression_yaw_thr: 0.7
+path_end_dist_thr: 1.0 # 终点距离阈值；太小容易卡在最后一点，太大可能提前结束
+path_end_yaw_thr: 0.4 # 终点 yaw 阈值；太小容易因朝向误差卡住
+path_progression_dist_thr: 1.05 # 切换下一个路径点的距离阈值；太小易抖/卡点，太大可能跳点
+path_progression_dist_thr_min: 0.85 # 路径点切换距离阈值下限；转弯处会动态收紧到不低于该值
+path_progression_yaw_thr: 0.4 # 切换路径点的 yaw 阈值；太小会更严格但可能卡顿
+path_progression_pitch_thr: 0.4 # 切换路径点的 pitch/相机角阈值；无相关输入时影响较小
+stuck_detection_enable: true
+stuck_timeout: 2.0
+stuck_min_progress: 0.15
+stuck_dist_margin: 0.03
+distance_budget_enable: true
+distance_budget_limit: 28.0  # 里程计返航调这个
+distance_budget_max_step: 1.0
+distance_budget_min_step: 0.08
+distance_budget_log_period: 1.0
+distance_budget_release_timeout: 3.0
+interpolate_traj: true # 对路径点插值生成轨迹；建议保持 true，直接影响控制端轨迹连续性
+use_time_from_start: true # 使用 time_from_start 给轨迹定时；有利于控制器按规划节奏执行
+travel_backward: false
+init_motion:
+  z_takeoff: 1.7
+  z_drop: 0.2
+  x_forward: 0.5
+
+RobotDynamics:
+  v_max: 0.6 # PCI 实际生成执行轨迹的最大速度；越大越容易显得硬，实机想柔可降到 0.6 左右试
+  v_init_max: 0.5 # 初始化运动最大速度
+  v_homing_max: 0.5 # homing 执行轨迹最大速度；区别于 gbplanner_config.yaml 中的返航时间估计速度
+  yaw_rate_max: 0.1 # 执行轨迹最大 yaw 角速度；越小转向越柔，但可能跟不上急转路径
+  dt: 0.05 # 轨迹采样时间间隔；越小轨迹点更密，消息量更大
+  a_max: 1.5 # 执行轨迹加速度上限；越小越柔但响应慢，想平滑可试 1.0~2.0

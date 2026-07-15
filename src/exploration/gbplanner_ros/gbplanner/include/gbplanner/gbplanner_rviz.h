@@ -40,6 +40,15 @@ class Visualization {
   void visualizeFailedEdges(std::shared_ptr<SampleStatistic> ss);
   // Visualize bounding box of the robot.
   void visualizeRobotState(StateVec& state, RobotParams& robot_params);
+  // Visualize the exact planning box used by the dirty-start check.
+  void visualizeStartCheckBox(const Eigen::Vector3d& center,
+                              const Eigen::Vector3d& box_size,
+                              VoxelStatus status);
+  // Visualize planner failure/success reason near the robot for quick RViz
+  // diagnosis.
+  void visualizePlanningDiagnostics(const Eigen::Vector3d& position,
+                                    const std::string& status_text,
+                                    bool is_error);
   // Visualize FOV of all sensors using.
   void visualizeSensorFOV(StateVec& state, SensorParams& sensor_params);
   // Visualize shortest paths in a graph computed from Dijkstra algorithm.
@@ -124,6 +133,8 @@ class Visualization {
   ros::Publisher planning_workspace_pub_;
   ros::Publisher no_gain_zone_pub_;
   ros::Publisher robot_state_pub_;
+  ros::Publisher start_check_box_pub_;
+  ros::Publisher planning_diagnostics_pub_;
   ros::Publisher planning_graph_pub_;
   ros::Publisher planning_projected_graph_pub_;
   ros::Publisher planning_failed_pub_;

@@ -1,0 +1,367 @@
+  # Configurations for the exploration pipeline.
+  # For more details, please check comments in the params.h file and the wiki.
+  #-------------------------------------------------------------------------------
+  # ROBOT CONFIGURATION
+  #-------------------------------------------------------------------------------
+RobotParams:
+  type:               kAerialRobot
+  # size:               [0.4, 0.0, 0.0] # Actual size of the robot in meters [x, y, z]
+  size:               [0.35, 0.35, 0.35] # Actual size of the robot in meters [x, y, z]
+  size_extension_min: [0.25, 0.25, 0.20] # minimum extension outside of robot size allowed to operate
+  size_extension:     [0.65, 0.65, 0.45] # maximum extension outside of the robot size
+  center_offset:      [0.0, 0.0, 0.0]
+  relax_ratio:        0.5 # Used to define an intermediate size between size_extension_min and size_extension for planning
+  bound_mode:         kRelaxedBound
+  safety_extension:   [2.6, 2.6, 1.8] # Safety extension outside the bounding box of a path segment used to improve it by pushing it away from obstacles
+#-------------------------------------------------------------------------------
+# SENSOR CONFIGURATION
+#  sensor_list: Define a set of sensors relevant to the exploration task.
+#  rotations: ZYX order;
+#             all follows ROS convention (X-forward, Y-left, Z-Up).
+#-------------------------------------------------------------------------------
+SensorParams:
+  sensor_list:      ["OS064", "Cam"]
+  OS064:
+    type:           kLidar
+    max_range:      15
+    center_offset:  [0.0, 0.0, 0.0]
+    rotations:      [0.0, 0.0, 0.0]
+    fov:            [rad(2*pi), rad(90*pi/180)]
+    resolution:     [rad(10.0*pi/180), rad(10.0*pi/180)]
+    frontier_percentage_threshold: 0.0015
+  CamF:
+    type:           kLidar
+    max_range:      3.5
+    center_offset:  [0.0, 0.0, 0.0]
+    rotations:      [0.0, 0.0, 0.0]
+    fov:            [rad(100*pi/180), rad(60*pi/180)]
+    resolution:     [rad(4.0*pi/180), rad(4.0*pi/180)]
+    frontier_percentage_threshold: 0.01
+  Cam:
+    type:           kLidar
+    CameraType:     kRotating
+    rot_lims:       [-1.57, 1.57]
+    max_range:      2.5
+    min_range:      0.25
+    center_offset:  [0.0, 0.0, 0.0]
+    rotations:      [0.0, 0.0, 0.0]
+    fov:            [rad(120*pi/180.0), rad(80*pi/180.0)]
+    resolution:     [rad(5*pi/180), rad(5*pi/180)]
+    frontier_percentage_threshold: 0.06
+
+CameraAnnotationParams:
+  sensor_list:      ["Cam"]
+  Cam:
+    type:           kLidar
+    rot_lims:       [-1.57, 1.57]
+    max_range:      3.0
+    center_offset:  [0.0, 0.0, 0.0]
+    rotations:      [0.0, 0.0, 0.0]
+    fov:            [rad(84*pi/180.0), rad(64*pi/180.0)]
+    resolution:     [rad(2.0*pi/180), rad(2.0*pi/180)]
+    frontier_percentage_threshold: 0.01
+#-------------------------------------------------------------------------------
+# 采样空间配置
+#   Global: 全局绝对边界，定义整个环境允许规划的范围。
+#   Local: 局部相对边界，定义相对当前无人机位置的局部规划采样范围。
+#-------------------------------------------------------------------------------
+BoundedSpaceParams:
+  Global:
+    type:           kCuboid
+    # 全局绝对边界，最终采样/规划不会超过这个范围。
+    # 第三个数是 Z 方向绝对下限/上限；实机限高优先改 max_val 的第三个数。
+    # min_val:        [-1.0, -60.0, -1.0]
+    # max_val:        [30.0, 60.0, 3.0]
+    min_val:        [-50.0, -50.0, -0.3]
+    max_val:        [50.0, 50.0, 3.0]
+  Local:
+    type:           kCuboid
+    # 局部边界是相对当前无人机位置的采样范围。
+    # 例如 Z=[-0.25, 0.25] 表示每次局部探索只允许在当前高度上下 0.25m 内采样。
+    min_val:        [-7.5, -7.5, -0.25]
+    max_val:        [7.5, 7.5, 0.4]
+    # min_val:        [-20.0, -20.0, -3.0]
+    # max_val:        [20.0, 20.0, 3.0]
+    # min_val:        [-20.0, -20.0, -4.0]
+    # max_val:        [20.0, 20.0, 4.0]
+    # min_val:        [-10.0, -10.0, -4.0]
+    # max_val:        [10.0, 10.0, 4.0]
+    # min_extension:  [-10.0, -10.0, -10.0]
+    # max_extension:  [10.0, 10.0, 10.0]
+    # extension 会在局部边界外再扩一圈：
+    #   bound_min = current_state + min_val + min_extension
+    #   bound_max = current_state + max_val + max_extension
+    # min_extension 是负方向扩展，不是“最小高度”；max_extension 是正方向扩展。
+    # 为避免实机突然往高处采样，Z 方向 extension 建议保持 0.0。
+    min_extension:  [-5.0, -5.0, 0.0]
+    max_extension:  [5.0, 5.0, 0.0]
+
+  LocalSearch:
+    type:           kCuboid
+    min_val:        [-80.0, -80.0, -1.0]
+    max_val:        [80.0, 80.0, 1.0]
+  # Adaptive OBB:
+  LocalAdaptiveExp:
+    type:           kCuboid
+    min_val:        [-10.0, -10.0, -0.75]
+    max_val:        [10.0, 10.0, 0.75]
+NoGainZones:
+  g1:  # Back
+    type:           kCuboid
+    min_val:        [-50.0, -10.0, -10.0]
+    max_val:        [2.0, 10.0, 10.0]
+#-------------------------------------------------------------------------------
+# SAMPLING POLICY CONFIGURATION
+#   Sample space limited to 4 states: X, Y, Z, and Heading
+#-------------------------------------------------------------------------------
+RandomSamplerParams:
+  SamplerForExploration:
+    X:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Y:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Z:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Heading:
+      pdf_type:       kUniform
+      sample_mode:    kManual
+      min_val:        rad(-pi)
+      max_val:        rad(pi)
+    Pitch:
+      pdf_type:       kConst
+      sample_mode:    kManual
+      const_val:      rad(0.0)
+  SamplerForSearching:
+    X:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Y:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Z:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Heading:
+      pdf_type:       kUniform
+      sample_mode:    kManual
+      min_val:        rad(-pi)
+      max_val:        rad(pi)
+    Pitch:
+      pdf_type:       kConst
+      sample_mode:    kManual
+      const_val:      rad(0.0)
+  SamplerForAdaptiveExp:
+    X:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Y:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Z:
+      pdf_type:       kUniform
+      sample_mode:    kLocal
+    Heading:
+      pdf_type:       kUniform
+      sample_mode:    kManual
+      min_val:        rad(-pi)
+      max_val:        rad(pi)
+    Pitch:
+      pdf_type:       kConst
+      sample_mode:    kManual
+      const_val:      rad(0.0)
+
+#-------------------------------------------------------------------------------
+# EXPLORATION CONFIGURATION
+# exp_sensor_list: sensors used to compute exploration gain.
+#-------------------------------------------------------------------------------
+PlanningParams:
+  type:             kBasicExploration #kAdaptiveExploration, kBasicExploration
+  rr_mode:          kGraph
+  graph_building_mode: kBasic
+  exp_sensor_list:  ["OS064"]
+  # exp_sensor_list:  ["Cam"]
+  # exp_sensor_list:  ["CamF"]
+  inspection_sensor_list:  ["Cam"]
+  # no_gain_zones_list: ["g1"]
+  v_max:            0.1 # max velocity m/s；规划器估计探索路径耗时用，主要影响时间预算/路径评分，不是最终控制速度
+  v_homing_max:     0.1 # max velocity m/s；规划器估计回家耗时用，time_to_home = homing_path_length / v_homing_max
+  yaw_rate_max:     0.1 # max angular velocity rad/s；规划器估计转向耗时用，数值越小越保守
+  yaw_tangent_correction: true # true 时让 yaw 沿路径切线方向，通常能减少朝向突变，让路径朝向更顺
+  edge_length_min:  0.2 # RRG 单条边最短长度；太小会增加节点密度和计算量
+  edge_length_max:  0.6 # RRG 单条边最大长度；越大路径点越稀疏、折线感可能更强，想更细腻可适当减小
+  edge_overshoot:   0.30 # m - 碰撞检查时向边两端外扩，考虑跟踪误差；偏大更保守，可能让路径绕得更多
+
+  num_vertices_max: 160 # 最多造多少个有效点；越多搜索更充分，可能路径质量更好，但规划更慢
+  num_edges_max:    1400 # 最多连多少条有效边；越多图更密，可能更容易找到顺路，但计算量上升
+  num_loops_cutoff: 350 # 连续失败多少次后停止建图；太小可能过早停止，路径选择不充分
+  num_loops_max:    450 # 最多总共尝试多少次采样/扩展；太小会减少搜索充分性，不是直接平滑参数
+
+  # 路径平滑性相关：edge_length_max / nearest_range / path_interpolation_distance 最直接影响路径几何折线感。
+  # edge_length_max 和 nearest_range 偏大时，可能出现跨度大的边；偏小时路径更密但规划更慢。
+  nearest_range:    1.5 # The max range within which a new vertex can be connected to an existing vertex；偏大可能连出长边，路径更硬
+  nearest_range_min: 0.5 # >= edge_length_min；邻接范围下限，影响局部连边密度
+  nearest_range_max: 1.5 # <= edge_length_max；邻接范围上限，想减少大跨度连边可适当降低
+  use_current_state: true # If true, it will use the current state to plan from instead of the state provided by the PCI in the service call
+  use_ray_model_for_volumetric_gain: true # if false, will check voxel by voxel in the sensor frustum 
+  exp_gain_voxel_size: 0.8 # used if use_ray_model_for_volumetric_gain is false
+  # Gains:
+  path_length_penalty: 0.18
+  path_direction_penalty: 0.45
+  occupied_voxel_gain: 0.0
+  free_voxel_gain:  1.5 # prefer directions towards more free voxels in case of the dead-end
+  unknown_voxel_gain: 20.0
+  path_history_penalty: 3.0
+  path_history_size: 6
+  path_history_decay_time: 20.0
+  path_reverse_hard_filter: true
+  path_reverse_dot_threshold: -0.20
+  wall_clearance_enable: true
+  wall_clearance_min: 0.65
+  wall_clearance_soft: 1.10
+  wall_clearance_penalty: 2.5
+  wall_clearance_sample_step: 0.20
+  wall_clearance_reject_final_path: true
+  centerline_bias_enable: true
+  centerline_clearance_target: 1.45
+  centerline_penalty: 2.0
+  centerline_sample_step: 0.25
+  path_smoothness_enable: true
+  path_smoothness_penalty: 2.0
+  final_shortcut_enable: false
+  final_shortcut_max_skip: 8
+  final_shortcut_min_savings: 0.05
+  final_shortcut_clearance_margin: 0.25
+  forward_exploration_enable: true
+  forward_exploration_min_dot: 0.00
+  forward_exploration_soft_dot: 0.55
+  forward_exploration_penalty: 1.2
+  forward_completion_only: true
+  forward_completion_min_valid_paths: 1
+  start_recovery_enable: true
+  start_recovery_radius_min: 0.8
+  start_recovery_radius_max: 2.2
+  start_recovery_radius_step: 0.2
+  start_recovery_angle_step_deg: 20.0
+  start_recovery_prefer_forward: true
+  start_recovery_allow_unknown: false
+  start_recovery_min_clearance: 0.45
+  start_recovery_ignore_start_dist: 1.0
+  start_recovery_path_resolution: 0.25
+  dirty_start_edge_tolerance_enable: true
+  dirty_start_edge_tolerance_dist: 1.8
+  dirty_root_escape_enable: true
+  dirty_root_escape_dist: 1.8
+  dirty_root_escape_min_clearance_gain: 0.15
+  dirty_root_escape_min_target_clearance: 0.75
+  min_gain_threshold: 30.0
+  min_path_length: 1.0
+  min_unknown_voxels_per_meter: 10.0
+
+  # path_length_penalty: 0.07
+  # path_direction_penalty: 0.0
+  # occupied_voxel_gain: 0.0
+  # free_voxel_gain:  2.0 # prefer directions towards more free voxels in case of the dead-end
+  # unknown_voxel_gain: 40.0
+  # path_history_penalty: 3.0
+  # path_history_size: 4
+  # path_history_decay_time: 12.0
+  # path_reverse_hard_filter: true
+  # path_reverse_dot_threshold: -0.45
+  # min_gain_threshold: 30.0
+  # min_path_length: 1.0
+  # min_unknown_voxels_per_meter: 10.0
+
+
+  traverse_length_max: 20.0 # Maximum local exploration path length before global reposition
+  traverse_time_max: 500.0
+  path_safety_enhance_enable: true # 对最终路径做安全增强/避障修正；主要提升安全，不一定总是更平滑
+  enforce_global_bounds_on_paths: true # 将 Global 边界作为路径可行性硬约束，防止路径后处理越过限高/限宽
+  augment_free_voxels_time: 3
+  free_frustum_before_planning: true
+  freespace_cloud_enable: false
+  leafs_only_for_volumetric_gain: true # Whether to calculate gain of the entire path or only the leaf nodes
+  cluster_vertices_for_gain: true
+  clustering_radius: 0.8
+  path_interpolation_distance: 0.15 # 路径插值间距；越小路径点越密、执行更连续，但消息/计算量更大；想更顺可试 0.3
+  
+  time_budget_limit: 3000.0 # 时间返航调这个
+   # seconds
+  auto_homing_enable: true
+  go_home_if_fully_explored: true
+  max_num_low_gain_iters: 5
+
+  nonuniform_ray_cast: true
+  ray_cast_step_size_multiplier: 2.0
+
+  use_camera_gain: false
+  annotate_map_with_camera: true
+  
+  inspection_planning: false
+
+  keep_leaf_yaw_only: false # false 时 yaw 更跟随路径切线，减少叶子目标点导致的机头跳变
+
+  enable_manhole_traversal: false
+  manhole_alignment_z_offset: 0.0 # -0.25
+  only_manhole_traversal: false
+
+  auto_manhole_path_approval: true
+  max_manhole_height: 20.0
+
+  box_check_method: 0
+  line_check_method: 1
+
+  add_only_frontiers_to_global_graph: true
+
+  min_coverage_percentage: 0.9
+  inspection_xy_spacing: 1.5 # 1.5
+  inspection_z_spacing: 1.0 # 2.0
+  inspection_thr_esdf_dist: 0.5 # 1.5
+  inspection_target_viewing_range: 1.25 #1.5 # 2.5
+  inspection_graph_vertices: 500
+  max_inspection_vertices: 75
+  num_lkh_iterations: 10
+
+  max_surface_distance: 1.5
+  limit_vertices_to_surface: false
+  min_occ_surface: -10.0
+
+  max_exploration_iterations: 3
+  exploration_only: true
+  # compartment_centers: [2.0, 0.25, 2.0, 6.0, 0.25, 2.0, 10.0, 0.25, 2.0, 14.0, 0.25, 2.0]
+  # compartment_dimensions:
+  #   type:           kCuboid
+  #   min_val:        [-2.4, -1.9, -2.0]
+  #   max_val:        [2.4, 1.9, 2.0]
+  compartment_centers: [0.0, -5.0, 5.0]
+  compartment_dimensions:
+    type:           kCuboid
+    min_val:        [-20.0, -20.0, -5.0]
+    max_val:        [20.0, 20.0, 5.0]
+  # compartment_centers: [0.0, 0.0, 2.25]
+  # compartment_centers: [0.0, 0.0, 1.2]
+  # compartment_dimensions:
+  #   type:           kCuboid
+  #   min_val:        [-3.0, -10.0, -1.8]
+  #   max_val:        [17.0, 10.0, 2.25]
+  # compartment_dimensions:
+  #   type:           kCuboid
+  #   min_val:        [-2.5, -2.5, -2.5]
+  #   max_val:        [2.5, 2.5, 2.5]
+  
+  # If inspection_planning is true, the following is set:
+  # use_camera_gain = true
+  # yaw_tangent_correction = false
+  # leafs_only_for_volumetric_gain = false
+  # cluster_vertices_for_gain = false
+  # path_safety_enhance_enable = false
+  # annotate_map_with_camera = true
+
+  geofence_checking_enable: true
+
+AdaptiveObbParams:
+  type: kPca
+  local_pointcloud_range: 50.0
+  bounding_box_size_max: 35

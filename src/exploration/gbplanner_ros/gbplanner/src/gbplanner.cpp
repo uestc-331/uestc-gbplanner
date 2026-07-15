@@ -570,6 +570,17 @@ Rrg::LocalPlannerStatus Gbplanner::getLocalNavigationPath()
     ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                   "[GBPLANNER][LOCAL] graph build status=%d ret_status=%d",
                   static_cast<int>(status), static_cast<int>(ret_status));
+    const bool start_clear = rrg_->isStartClearWithMinBound();
+    if (!start_clear && rrg_->getStartRecoveryPath(out_srv_res_.path)) {
+      out_srv_res_.status = planner_msgs::planner_srv::Response::kForward;
+      ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                    "[GBPLANNER][LOCAL] returning start recovery path size=%zu",
+                    out_srv_res_.path.size());
+      return Rrg::LocalPlannerStatus::L_OK;
+    } else if (start_clear) {
+      ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                    "[GBPLANNER][LOCAL] start recovery skipped: min-bound start is free");
+    }
     out_srv_res_.status = planner_msgs::planner_srv::Response::kForward;
     return ret_status;
   }
@@ -689,6 +700,17 @@ Rrg::LocalPlannerStatus Gbplanner::getExplorationPath()
     ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                   "[GBPLANNER][EXPLORE] graph build status=%d ret_status=%d",
                   static_cast<int>(status), static_cast<int>(ret_status));
+    const bool start_clear = rrg_->isStartClearWithMinBound();
+    if (!start_clear && rrg_->getStartRecoveryPath(out_srv_res_.path)) {
+      out_srv_res_.status = planner_msgs::planner_srv::Response::kForward;
+      ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                    "[GBPLANNER][EXPLORE] returning start recovery path size=%zu",
+                    out_srv_res_.path.size());
+      return Rrg::LocalPlannerStatus::L_OK;
+    } else if (start_clear) {
+      ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                    "[GBPLANNER][EXPLORE] start recovery skipped: min-bound start is free");
+    }
     out_srv_res_.status = planner_msgs::planner_srv::Response::kForward;
     return ret_status;
   }

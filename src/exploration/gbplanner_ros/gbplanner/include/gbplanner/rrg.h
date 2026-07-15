@@ -253,6 +253,8 @@ class Rrg {
   std::vector<geometry_msgs::Pose> getBestPath(std::string tgt_frame,
                                                int& status);
   std::vector<geometry_msgs::Pose> getBestPathSimplified();
+  bool isStartClearWithMinBound();
+  bool getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path);
 
   bool homingRequired(std::vector<geometry_msgs::Pose> &homing_path);
   std::vector<geometry_msgs::Pose> searchHomingPath(std::string tgt_frame,
@@ -286,6 +288,34 @@ class Rrg {
                            const Eigen::Vector3d& robot_size,
                            bool stop_at_unknown_voxel,
                            bool log_failure = false,
+                           const std::string& log_context = "");
+  bool isPathStatusFreeWithEndpointTolerance(
+      const Eigen::Vector3d& start, const Eigen::Vector3d& end,
+      const Eigen::Vector3d& robot_size, bool stop_at_unknown_voxel,
+      bool tolerate_start, bool tolerate_end,
+      const std::string& log_context = "");
+  bool trimPathPrefixByDistance(const std::vector<geometry_msgs::Pose>& path,
+                                double trim_dist,
+                                std::vector<geometry_msgs::Pose>& trimmed_path,
+                                Eigen::Vector3d& trim_point);
+  bool isFinalPathSafeWithDirtyRootEscape(
+      const std::vector<geometry_msgs::Pose>& path,
+      const Eigen::Vector3d& robot_size,
+      const std::string& log_context = "");
+  bool computePathClearanceCost(const std::vector<Eigen::Vector3d>& path,
+                                double& min_clearance,
+                                double& clearance_cost);
+  bool computePathClearanceCost(const std::vector<geometry_msgs::Pose>& path,
+                                double& min_clearance,
+                                double& clearance_cost);
+  double computePathCenterlineCost(const std::vector<Eigen::Vector3d>& path,
+                                   double& avg_clearance,
+                                   double& min_clearance);
+  double computePathSmoothnessCost(const std::vector<Eigen::Vector3d>& path);
+  bool shortcutPath(const std::vector<geometry_msgs::Pose>& path_orig,
+                    std::vector<geometry_msgs::Pose>& path_shortcut,
+                    const std::string& log_context = "");
+  bool isPathClearanceSafe(const std::vector<geometry_msgs::Pose>& path,
                            const std::string& log_context = "");
   bool isPointInsideGlobalPlanningBounds(const Eigen::Vector3d& point,
                                          const Eigen::Vector3d& robot_size,

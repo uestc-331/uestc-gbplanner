@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
-cd /home/super/uestcgbplanner3
+cd /home/uestc/gb3/uestc-gbplanner
 
-source /opt/ros/noetic/setup.bash
-source /home/super/uestcgbplanner3/devel/setup.bash
+source scripts/gb3_env.bash
 
 roslaunch gbplanner rmf_real.launch & sleep 2
 

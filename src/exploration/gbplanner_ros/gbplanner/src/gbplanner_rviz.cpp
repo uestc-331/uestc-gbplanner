@@ -21,6 +21,12 @@ Visualization::Visualization(const ros::NodeHandle& nh,
       nh_.advertise<visualization_msgs::MarkerArray>("vis/shortest_paths", 10);
   robot_state_pub_ =
       nh_.advertise<visualization_msgs::MarkerArray>("vis/robot_state", 100);
+  start_check_box_pub_ =
+      nh_.advertise<visualization_msgs::MarkerArray>("vis/start_check_box", 10,
+                                                     true);
+  planning_diagnostics_pub_ =
+      nh_.advertise<visualization_msgs::MarkerArray>("vis/planning_diagnostics",
+                                                     10, true);
   sensor_fov_pub_ =
       nh_.advertise<visualization_msgs::MarkerArray>("vis/sensor_fov", 100);
   best_planning_path_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(
@@ -886,6 +892,131 @@ void Visualization::visualizeRobotState(StateVec& state,
   marker_array.markers.push_back(robot_ori_marker);
 
   robot_state_pub_.publish(marker_array);
+}
+
+void Visualization::visualizeStartCheckBox(const Eigen::Vector3d& center,
+                                           const Eigen::Vector3d& box_size,
+                                           VoxelStatus status) {
+  visualization_msgs::MarkerArray marker_array;
+
+  visualization_msgs::Marker box_marker;
+  box_marker.header.stamp = ros::Time::now();
+  box_marker.header.seq = 0;
+  box_marker.header.frame_id = world_frame_id;
+  box_marker.id = 0;
+  box_marker.ns = "start_check_box";
+  box_marker.action = visualization_msgs::Marker::ADD;
+  box_marker.type = visualization_msgs::Marker::CUBE;
+  box_marker.pose.position.x = center.x();
+  box_marker.pose.position.y = center.y();
+  box_marker.pose.position.z = center.z();
+  box_marker.pose.orientation.x = 0.0;
+  box_marker.pose.orientation.y = 0.0;
+  box_marker.pose.orientation.z = 0.0;
+  box_marker.pose.orientation.w = 1.0;
+  box_marker.scale.x = box_size.x();
+  box_marker.scale.y = box_size.y();
+  box_marker.scale.z = box_size.z();
+  box_marker.color.a = 0.35;
+  if (status == VoxelStatus::kFree) {
+    box_marker.color.r = 0.0;
+    box_marker.color.g = 1.0;
+    box_marker.color.b = 0.0;
+  } else if (status == VoxelStatus::kOccupied) {
+    box_marker.color.r = 1.0;
+    box_marker.color.g = 0.0;
+    box_marker.color.b = 0.0;
+  } else {
+    box_marker.color.r = 1.0;
+    box_marker.color.g = 0.85;
+    box_marker.color.b = 0.0;
+  }
+  box_marker.lifetime = ros::Duration(robot_lifetime);
+  box_marker.frame_locked = false;
+  marker_array.markers.push_back(box_marker);
+
+  visualization_msgs::Marker text_marker;
+  text_marker.header = box_marker.header;
+  text_marker.id = 1;
+  text_marker.ns = "start_check_box_status";
+  text_marker.action = visualization_msgs::Marker::ADD;
+  text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+  text_marker.pose.position.x = center.x();
+  text_marker.pose.position.y = center.y();
+  text_marker.pose.position.z = center.z() + 0.5 * box_size.z() + 0.25;
+  text_marker.pose.orientation.w = 1.0;
+  text_marker.scale.z = 0.25;
+  text_marker.color.r = box_marker.color.r;
+  text_marker.color.g = box_marker.color.g;
+  text_marker.color.b = box_marker.color.b;
+  text_marker.color.a = 1.0;
+  if (status == VoxelStatus::kFree) {
+    text_marker.text = "START CHECK: FREE";
+  } else if (status == VoxelStatus::kOccupied) {
+    text_marker.text = "START CHECK: OCCUPIED";
+  } else {
+    text_marker.text = "START CHECK: UNKNOWN";
+  }
+  text_marker.lifetime = box_marker.lifetime;
+  text_marker.frame_locked = false;
+  marker_array.markers.push_back(text_marker);
+
+  start_check_box_pub_.publish(marker_array);
+}
+
+void Visualization::visualizePlanningDiagnostics(
+    const Eigen::Vector3d& position, const std::string& status_text,
+    bool is_error) {
+  visualization_msgs::MarkerArray marker_array;
+
+  visualization_msgs::Marker sphere_marker;
+  sphere_marker.header.stamp = ros::Time::now();
+  sphere_marker.header.seq = 0;
+  sphere_marker.header.frame_id = world_frame_id;
+  sphere_marker.id = 0;
+  sphere_marker.ns = "planning_diagnostics_position";
+  sphere_marker.action = visualization_msgs::Marker::ADD;
+  sphere_marker.type = visualization_msgs::Marker::SPHERE;
+  sphere_marker.pose.position.x = position.x();
+  sphere_marker.pose.position.y = position.y();
+  sphere_marker.pose.position.z = position.z();
+  sphere_marker.pose.orientation.w = 1.0;
+  sphere_marker.scale.x = 0.45;
+  sphere_marker.scale.y = 0.45;
+  sphere_marker.scale.z = 0.45;
+  sphere_marker.color.a = 0.75;
+  if (is_error) {
+    sphere_marker.color.r = 1.0;
+    sphere_marker.color.g = 0.05;
+    sphere_marker.color.b = 0.0;
+  } else {
+    sphere_marker.color.r = 0.0;
+    sphere_marker.color.g = 0.8;
+    sphere_marker.color.b = 0.15;
+  }
+  sphere_marker.lifetime = ros::Duration(0);
+  sphere_marker.frame_locked = false;
+  marker_array.markers.push_back(sphere_marker);
+
+  visualization_msgs::Marker text_marker;
+  text_marker.header = sphere_marker.header;
+  text_marker.id = 1;
+  text_marker.ns = "planning_diagnostics_text";
+  text_marker.action = visualization_msgs::Marker::ADD;
+  text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+  text_marker.pose.position.x = position.x();
+  text_marker.pose.position.y = position.y();
+  text_marker.pose.position.z = position.z() + 0.9;
+  text_marker.pose.orientation.w = 1.0;
+  text_marker.scale.z = 0.32;
+  text_marker.color = sphere_marker.color;
+  text_marker.color.a = 1.0;
+  text_marker.text = status_text;
+  text_marker.lifetime = ros::Duration(0);
+  text_marker.frame_locked = false;
+  marker_array.markers.push_back(text_marker);
+
+  planning_diagnostics_pub_.publish(marker_array);
 }
 
 void Visualization::visualizeSensorFOV(StateVec& state,

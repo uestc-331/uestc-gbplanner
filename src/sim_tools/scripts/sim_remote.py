@@ -4,6 +4,7 @@
 import rospy
 from mavros_msgs.msg import RCIn
 from quadrotor_msgs.msg import TakeoffLand
+from std_msgs.msg import UInt32
 import tty, select, sys, termios
 
 
@@ -28,6 +29,7 @@ class SimRemote:
         self.remote_pub = rospy.Publisher('iris_0/mavros/rc/in', RCIn, queue_size=1)
         # 起飞/降落指令--仅供特殊用途
         self.takeoff_land_pub = rospy.Publisher('/px4ctrl/takeoff_land', TakeoffLand, queue_size=1)
+        self.mission_state_pub = rospy.Publisher('/mission_state', UInt32, queue_size=1, latch=True)
 
     def set_channel(self, channel, value):
         """设置遥控通道"""
@@ -37,6 +39,12 @@ class SimRemote:
         msg = TakeoffLand()
         msg.takeoff_land_cmd = val
         self.takeoff_land_pub.publish(msg)
+
+    def pub_mission_state(self, val):
+        msg = UInt32()
+        msg.data = val
+        self.mission_state_pub.publish(msg)
+
     def get_key(self):
         """获取键盘输入"""
         settings = termios.tcgetattr(sys.stdin)
@@ -112,6 +120,8 @@ class SimRemote:
                 self.print_menu()
                 
             elif key == 'z':
+                self.pub_mission_state(4)
+                rospy.sleep(0.1)
                 self.pub_takeoff_msg(1)
             elif key == 'c':
                 self.pub_takeoff_msg(2)

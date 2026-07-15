@@ -200,6 +200,22 @@ Visualization Manager:
           Queue Size: 100
           Value: false
         - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /vis/start_check_box
+          Name: StartCheckBox
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /vis/planning_diagnostics
+          Name: PlanningDiagnostics
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /vis/planning_workspace
           Name: PlanningWorkspace

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <sstream>
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
@@ -100,6 +101,9 @@ void Rrg::initializeAttributes() {
 
   free_cloud_pub_ =
       nh_.advertise<sensor_msgs::PointCloud2>("freespace_pointcloud", 10);
+  free_cloud_pub_timer_ =
+      nh_.createTimer(ros::Duration(0.5), &Rrg::freePointCloudtimerCallback,
+                      this);
   
   entry_point_pub_ =
       nh_.advertise<geometry_msgs::PoseStamped>("gbplanner/entry_point_viz", 10);
@@ -208,10 +212,25 @@ void Rrg::reset() {
   }
 
   // First check if this position is free to go.
-  VoxelStatus voxel_state = map_manager_->getBoxStatus(
+  const Eigen::Vector3d start_check_center =
       Eigen::Vector3d(root_state[0], root_state[1], root_state[2]) +
-          robot_params_.center_offset,
-      robot_box_size_, true);
+      robot_params_.center_offset;
+  const Eigen::Vector3d start_check_box_size =
+      robot_params_.size + robot_params_.size_extension_min;
+  VoxelStatus voxel_state = map_manager_->getBoxStatus(
+      start_check_center, start_check_box_size, true);
+  visualization_->visualizeStartCheckBox(start_check_center,
+                                         start_check_box_size, voxel_state);
+  ROS_INFO(
+      "[RRG][START_CHECK_BOX] status=%s center=[%.2f %.2f %.2f] "
+      "size=[%.2f %.2f %.2f] planning_size=[%.2f %.2f %.2f] "
+      "center_offset=[%.2f %.2f %.2f]",
+      voxelStatusToString(voxel_state), start_check_center.x(),
+      start_check_center.y(), start_check_center.z(), start_check_box_size.x(),
+      start_check_box_size.y(), start_check_box_size.z(), robot_box_size_.x(),
+      robot_box_size_.y(), robot_box_size_.z(),
+      robot_params_.center_offset.x(), robot_params_.center_offset.y(),
+      robot_params_.center_offset.z());
   if (VoxelStatus::kFree != voxel_state) {
     switch (voxel_state) {
       case VoxelStatus::kFree:
@@ -226,10 +245,7 @@ void Rrg::reset() {
     }
     // Assume that even it is not fully free, but safe to clear these voxels.
     ROS_WARN_COND(global_verbosity >= Verbosity::WARN, "Starting position is not clear--> clear space around the robot.");
-    map_manager_->augmentFreeBox(
-        Eigen::Vector3d(root_state[0], root_state[1], root_state[2]) +
-            robot_params_.center_offset,
-        robot_box_size_);
+    map_manager_->augmentFreeBox(start_check_center, start_check_box_size);
   }
 
   // Use the circumscribed sphere radius of the planning box.
@@ -1008,9 +1024,9 @@ void Rrg::expandGraph(std::shared_ptr<GraphManager> graph_manager,
   bool admissible_edge = false;
   int steep_edges = 0;
   if (robot_params_.type == RobotType::kAerialRobot) {
-    VoxelStatus vs =
-        map_manager_->getPathStatus(start_pos, end_pos, robot_box_size_, true);
-    if (VoxelStatus::kFree == vs) {
+    if (isPathStatusFreeWithEndpointTolerance(
+            start_pos, end_pos, robot_box_size_, true, nearest_vertex->id == 0,
+            false, "expand_nearest")) {
       admissible_edge = true;
     }
   } else if (robot_params_.type == RobotType::kGroundRobot) {
@@ -1176,9 +1192,9 @@ void Rrg::expandGraphEdges(std::shared_ptr<GraphManager> graph_manager,
       bool admissible_edge = false;
       std::vector<Eigen::Vector3d> projected_edge;
       if (robot_params_.type == RobotType::kAerialRobot) {
-        VoxelStatus vs =
-            map_manager_->getPathStatus(p_start, p_end, robot_box_size_, false);
-        if (VoxelStatus::kFree == vs) {
+        if (isPathStatusFreeWithEndpointTolerance(
+                p_start, p_end, robot_box_size_, false, false,
+                nearest_vertices[i]->id == 0, "expand_rewire")) {
           admissible_edge = true;
         }
       } else if (robot_params_.type == RobotType::kGroundRobot) {
@@ -1274,9 +1290,9 @@ void Rrg::expandGraph(std::shared_ptr<GraphManager> graph_manager,
   int steep_edges = 0;
   std::vector<Eigen::Vector3d> projected_edge;
   if (robot_params_.type == RobotType::kAerialRobot) {
-    VoxelStatus vs =
-        map_manager_->getPathStatus(start_pos, end_pos, robot_box_size_, true);
-    if (VoxelStatus::kFree == vs) {
+    if (isPathStatusFreeWithEndpointTolerance(
+            start_pos, end_pos, robot_box_size_, true, nearest_vertex->id == 0,
+            false, "expand_vertex_nearest")) {
       admissible_edge = true;
     }
   } else if (robot_params_.type == RobotType::kGroundRobot) {
@@ -1692,8 +1708,9 @@ void Rrg::expandGraph2(std::shared_ptr<GraphManager> graph_manager,
     // Check if the edge is collision-free
     bool admissible_edge = false;
     if (robot_params_.type == RobotType::kAerialRobot) {
-      VoxelStatus vs = map_manager_->getPathStatus(start_pos, end_pos, robot_box_size_, true);
-      if (VoxelStatus::kFree == vs) {
+      if (isPathStatusFreeWithEndpointTolerance(
+              start_pos, end_pos, robot_box_size_, true,
+              nearest_vertex->id == 0, false, "expand_samples_nearest")) {
         admissible_edge = true;
       }
     }
@@ -1751,8 +1768,10 @@ void Rrg::expandGraph2(std::shared_ptr<GraphManager> graph_manager,
             if (geofence_pass) {
               admissible_edge = false;
               if (robot_params_.type == RobotType::kAerialRobot) {
-                VoxelStatus vs = map_manager_->getPathStatus(p_start, p_end, robot_box_size_, true);
-                if (VoxelStatus::kFree == vs) {
+                if (isPathStatusFreeWithEndpointTolerance(
+                        p_start, p_end, robot_box_size_, true, false,
+                        nearest_vertices[j]->id == 0,
+                        "expand_samples_rewire")) {
                   // std::cout << "The edge from the extra vertex is admissible" << std::endl;
                   admissible_edge = true;
                 }
@@ -1948,6 +1967,13 @@ Rrg::GraphStatus Rrg::batchGraph(){
   local_exploration_ongoing_ = false;
 
   if (local_graph_->getNumVertices() > 1) {
+    std::ostringstream diag;
+    diag << "PLANNER OK\n"
+         << "graph: " << num_vertices << " vertices / " << num_edges
+         << " edges\n"
+         << "loops: " << loop_count;
+    visualization_->visualizePlanningDiagnostics(root_vertex_->state.head(3),
+                                                 diag.str(), false);
     if (robot_params_.type == RobotType::kGroundRobot) {
       visualization_->visualizeGraph(local_graph_);
       visualization_->visualizeProjectedGraph(projected_graph_);
@@ -1958,6 +1984,15 @@ Rrg::GraphStatus Rrg::batchGraph(){
     visualization_->visualizeFailedEdges(stat_);
     ROS_INFO("Number of failed samples: [%d] vertices and [%d] edges",
              stat_->num_vertices_fail, stat_->num_edges_fail);
+    std::ostringstream diag;
+    diag << "STUCK: NO_FEASIBLE_PATH\n"
+         << "start: free, root edge blocked\n"
+         << "graph: " << num_vertices << " vertices / " << num_edges
+         << " edges\n"
+         << "failed: " << stat_->num_vertices_fail << " vertices / "
+         << stat_->num_edges_fail << " edges";
+    visualization_->visualizePlanningDiagnostics(root_vertex_->state.head(3),
+                                                 diag.str(), true);
     return Rrg::GraphStatus::ERR_NO_FEASIBLE_PATH;
   }
 }
@@ -2141,6 +2176,13 @@ Rrg::GraphStatus Rrg::buildGraph() {
   local_exploration_ongoing_ = false;
 
   if (local_graph_->getNumVertices() > 1) {
+    std::ostringstream diag;
+    diag << "PLANNER OK\n"
+         << "graph: " << num_vertices << " vertices / " << num_edges
+         << " edges\n"
+         << "loops: " << loop_count;
+    visualization_->visualizePlanningDiagnostics(root_vertex_->state.head(3),
+                                                 diag.str(), false);
     if (robot_params_.type == RobotType::kGroundRobot) {
       visualization_->visualizeGraph(local_graph_);
       visualization_->visualizeProjectedGraph(projected_graph_);
@@ -2151,6 +2193,15 @@ Rrg::GraphStatus Rrg::buildGraph() {
     visualization_->visualizeFailedEdges(stat_);
     ROS_INFO("Number of failed samples: [%d] vertices and [%d] edges",
              stat_->num_vertices_fail, stat_->num_edges_fail);
+    std::ostringstream diag;
+    diag << "STUCK: NO_FEASIBLE_PATH\n"
+         << "start: free, root edge blocked\n"
+         << "graph: " << num_vertices << " vertices / " << num_edges
+         << " edges\n"
+         << "failed: " << stat_->num_vertices_fail << " vertices / "
+         << stat_->num_edges_fail << " edges";
+    visualization_->visualizePlanningDiagnostics(root_vertex_->state.head(3),
+                                                 diag.str(), true);
     return Rrg::GraphStatus::ERR_NO_FEASIBLE_PATH;
   }
 }
@@ -2449,12 +2500,23 @@ Rrg::GraphStatus Rrg::evaluateGraph() {
     double direction_penalty_ratio = 0.0;
     double history_penalty = 0.0;
     double reverse_dot = 1.0;
+    double forward_dot = 1.0;
+    double forward_cost = 0.0;
+    double min_clearance = std::numeric_limits<double>::infinity();
+    double clearance_cost = 0.0;
+    double centerline_avg_clearance = 0.0;
+    double centerline_min_clearance = 0.0;
+    double centerline_cost = 0.0;
+    double smoothness_cost = 0.0;
     double unknown_density = 0.0;
     double frontier_unknown_ratio = 0.0;
     bool pass_gain = false;
     bool pass_length = false;
     bool pass_density = false;
     bool pass_direction = true;
+    bool pass_forward = true;
+    bool pass_clearance = true;
+    bool pass_centerline = true;
     bool pass_all = false;
     bool short_frontier_step = false;
     int num_unknown_voxels = 0;
@@ -2576,8 +2638,42 @@ Rrg::GraphStatus Rrg::evaluateGraph() {
   int paths_passing_density_threshold = 0;
   int paths_passing_path_length_threshold = 0;
   int paths_passing_direction_threshold = 0;
+  int paths_passing_forward_threshold = 0;
   int paths_passing_all_thresholds = 0;
+  int forward_valid_path_count = 0;
   int leaf_frontier_count = 0;
+  auto get_horizontal_direction = [](const Eigen::Vector3d& direction,
+                                     Eigen::Vector3d& horizontal_direction) {
+    horizontal_direction =
+        Eigen::Vector3d(direction.x(), direction.y(), 0.0);
+    const double norm = horizontal_direction.norm();
+    if (norm <= 1e-3) return false;
+    horizontal_direction /= norm;
+    return true;
+  };
+  Eigen::Vector3d forward_reference = Eigen::Vector3d::Zero();
+  bool has_forward_reference = false;
+  if (!recent_path_directions_.empty()) {
+    has_forward_reference =
+        get_horizontal_direction(recent_path_directions_.back(),
+                                 forward_reference);
+  }
+  if (!has_forward_reference) {
+    forward_reference =
+        Eigen::Vector3d(std::cos(exploring_direction_),
+                        std::sin(exploring_direction_), 0.0);
+    has_forward_reference = true;
+  }
+  ROS_WARN(
+      "[RRG][FORWARD] enable=%d ref=[%.3f %.3f %.3f] min_dot=%.2f "
+      "soft_dot=%.2f penalty=%.2f completion_only=%d min_valid=%d",
+      planning_params_.forward_exploration_enable, forward_reference.x(),
+      forward_reference.y(), forward_reference.z(),
+      planning_params_.forward_exploration_min_dot,
+      planning_params_.forward_exploration_soft_dot,
+      planning_params_.forward_exploration_penalty,
+      planning_params_.forward_completion_only,
+      planning_params_.forward_completion_min_valid_paths);
   std::vector<PathDiagnostic> path_diagnostics;
   for (int i = 0; i < num_leaf_vertices; ++i) {
     int id = leaf_vertices[i]->id;
@@ -2697,6 +2793,36 @@ Rrg::GraphStatus Rrg::evaluateGraph() {
           path_gain_before_direction_penalty;
       path_diag.direction_penalty_ratio = fw_ratio;
 
+      if (planning_params_.forward_exploration_enable &&
+          has_current_path_direction && has_forward_reference) {
+        Eigen::Vector3d current_horizontal_direction;
+        if (get_horizontal_direction(current_path_direction,
+                                     current_horizontal_direction)) {
+          path_diag.forward_dot =
+              current_horizontal_direction.dot(forward_reference);
+          path_diag.pass_forward =
+              path_diag.forward_dot >=
+              planning_params_.forward_exploration_min_dot;
+          if (path_diag.forward_dot <
+              planning_params_.forward_exploration_soft_dot) {
+            const double denom = std::max(
+                1e-3, planning_params_.forward_exploration_soft_dot -
+                          planning_params_.forward_exploration_min_dot);
+            path_diag.forward_cost =
+                std::max(0.0,
+                         (planning_params_.forward_exploration_soft_dot -
+                          path_diag.forward_dot) /
+                             denom);
+            path_gain *= exp(-planning_params_.forward_exploration_penalty *
+                             path_diag.forward_cost);
+          }
+          ROS_INFO(
+              "[RRG][FORWARD] leaf=%d dot=%.3f cost=%.3f pass=%d gain=%.2f",
+              id, path_diag.forward_dot, path_diag.forward_cost,
+              path_diag.pass_forward, path_gain);
+        }
+      }
+
       double history_penalty = 0.0;
       if (!recent_path_directions_.empty() && has_current_path_direction) {
         double current_time = ros::Time::now().toSec();
@@ -2729,14 +2855,47 @@ Rrg::GraphStatus Rrg::evaluateGraph() {
             id);
         path_gain = 0.0;
       }
-
-      path_diag.final_gain = path_gain;
-      path_diag.num_unknown_voxels = num_unknown_voxels;
       for (int ind = 1; ind < path_size; ++ind) {
         Eigen::Vector3d diff =
             path[ind]->state.head(3) - path[ind - 1]->state.head(3);
         path_diag.path_length += diff.norm();
       }
+      if (planning_params_.wall_clearance_enable) {
+        path_diag.pass_clearance = computePathClearanceCost(
+            path_list, path_diag.min_clearance, path_diag.clearance_cost);
+        path_gain *= exp(-planning_params_.wall_clearance_penalty *
+                         path_diag.clearance_cost);
+        ROS_INFO(
+            "[RRG][CLEARANCE] leaf=%d min=%.3f cost=%.3f pass=%d gain=%.2f",
+            id, path_diag.min_clearance, path_diag.clearance_cost,
+            path_diag.pass_clearance, path_gain);
+      }
+      if (planning_params_.centerline_bias_enable) {
+        path_diag.centerline_cost = computePathCenterlineCost(
+            path_list, path_diag.centerline_avg_clearance,
+            path_diag.centerline_min_clearance);
+        path_gain *= exp(-planning_params_.centerline_penalty *
+                         path_diag.centerline_cost);
+        ROS_INFO(
+            "[RRG][CENTERLINE] leaf=%d avg=%.3f min=%.3f target=%.3f "
+            "cost=%.3f gain=%.2f",
+            id, path_diag.centerline_avg_clearance,
+            path_diag.centerline_min_clearance,
+            planning_params_.centerline_clearance_target,
+            path_diag.centerline_cost, path_gain);
+      }
+      if (planning_params_.path_smoothness_enable) {
+        path_diag.smoothness_cost = computePathSmoothnessCost(path_list);
+        path_gain *= exp(-planning_params_.path_smoothness_penalty *
+                         path_diag.smoothness_cost);
+        ROS_INFO(
+            "[RRG][SMOOTH] leaf=%d cost=%.3f penalty=%.3f gain=%.2f",
+            id, path_diag.smoothness_cost,
+            planning_params_.path_smoothness_penalty, path_gain);
+      }
+
+      path_diag.final_gain = path_gain;
+      path_diag.num_unknown_voxels = num_unknown_voxels;
       path_diag.unknown_density =
           (path_diag.path_length > 0.1)
               ? static_cast<double>(num_unknown_voxels) /
@@ -2748,23 +2907,31 @@ Rrg::GraphStatus Rrg::evaluateGraph() {
           path_diag.unknown_density >
           planning_params_.min_unknown_voxels_per_meter;
       bool path_passes_direction = path_diag.pass_direction;
+      bool path_passes_forward = path_diag.pass_forward;
+      bool path_passes_clearance = path_diag.pass_clearance;
+      bool path_passes_centerline = path_diag.pass_centerline;
       path_diag.short_frontier_step =
           path_diag.leaf_is_frontier &&
           (path_diag.path_length >= short_frontier_min_length) &&
           (path_diag.path_length <= short_frontier_max_length) &&
           (path_diag.unknown_density >= short_frontier_density_min) &&
-          path_passes_direction;
+          path_passes_direction && path_passes_forward &&
+          path_passes_clearance && path_passes_centerline;
       bool path_passes_length =
           (path_diag.path_length > planning_params_.min_path_length ||
            path_diag.short_frontier_step) &&
           (path_diag.path_length <= local_path_length_max);
       bool path_passes_all_thresholds =
           path_passes_gain && path_passes_length && path_passes_density &&
-          path_passes_direction;
+          path_passes_direction && path_passes_forward &&
+          path_passes_clearance && path_passes_centerline;
       path_diag.pass_gain = path_passes_gain;
       path_diag.pass_length = path_passes_length;
       path_diag.pass_density = path_passes_density;
       path_diag.pass_direction = path_passes_direction;
+      path_diag.pass_forward = path_passes_forward;
+      path_diag.pass_clearance = path_passes_clearance;
+      path_diag.pass_centerline = path_passes_centerline;
       path_diag.pass_all = path_passes_all_thresholds;
 
       if (path_diag.final_gain > 0.0) ++paths_with_positive_gain;
@@ -2772,7 +2939,11 @@ Rrg::GraphStatus Rrg::evaluateGraph() {
       if (path_passes_length) ++paths_passing_path_length_threshold;
       if (path_passes_density) ++paths_passing_density_threshold;
       if (path_passes_direction) ++paths_passing_direction_threshold;
+      if (path_passes_forward) ++paths_passing_forward_threshold;
       if (path_passes_all_thresholds) ++paths_passing_all_thresholds;
+      if (path_passes_all_thresholds && path_passes_forward) {
+        ++forward_valid_path_count;
+      }
       path_diagnostics.push_back(path_diag);
 
       if (path_passes_all_thresholds && path_gain > best_gain) {
@@ -2802,12 +2973,13 @@ Rrg::GraphStatus Rrg::evaluateGraph() {
   ROS_WARN(
       "[RRG][DIAG] evaluated=%d positive=%d pass_gain=%d/%d "
       "pass_length=%d/%d pass_density=%d/%d pass_direction=%d/%d "
-      "pass_all=%d/%d best_gain=%.2f best_len=%.2f",
+      "pass_forward=%d/%d pass_all=%d/%d best_gain=%.2f best_len=%.2f",
       paths_evaluated, paths_with_positive_gain,
       paths_passing_gain_threshold, paths_evaluated,
       paths_passing_path_length_threshold, paths_evaluated,
       paths_passing_density_threshold, paths_evaluated,
       paths_passing_direction_threshold, paths_evaluated,
+      paths_passing_forward_threshold, paths_evaluated,
       paths_passing_all_thresholds, paths_evaluated, best_gain,
       best_path_length);
   if (!path_diagnostics.empty()) {
@@ -2828,45 +3000,71 @@ Rrg::GraphStatus Rrg::evaluateGraph() {
           "[RRG][DIAG] PathRank[%d] leaf=%d gain=%.2f raw_leaf_gain=%.2f "
           "len=%.2f density=%.2f unknown=%d frontier_ratio=%.4f/%.4f "
           "frontier=%d short_frontier=%d fw_ratio=%.3f hist=%.3f "
-          "reverse_dot=%.3f pass=[G:%d L:%d U:%d Dir:%d ALL:%d] "
+          "reverse_dot=%.3f forward_dot=%.3f forward_cost=%.3f "
+          "clearance=%.3f cost=%.3f center=[avg:%.3f min:%.3f cost:%.3f] "
+          "smooth=%.3f "
+          "pass=[G:%d L:%d U:%d Dir:%d Fwd:%d Clr:%d Ctr:%d ALL:%d] "
           "pos=[%.2f %.2f %.2f]",
           i + 1, diag.leaf_id, diag.final_gain, diag.leaf_raw_vol_gain,
           diag.path_length, diag.unknown_density, diag.num_unknown_voxels,
           diag.frontier_unknown_ratio, frontier_threshold_ratio,
           diag.leaf_is_frontier, diag.short_frontier_step,
           diag.direction_penalty_ratio, diag.history_penalty,
-          diag.reverse_dot, diag.pass_gain, diag.pass_length,
-          diag.pass_density, diag.pass_direction, diag.pass_all,
-          diag.leaf_position.x(), diag.leaf_position.y(),
-          diag.leaf_position.z());
+          diag.reverse_dot, diag.forward_dot, diag.forward_cost,
+          diag.min_clearance, diag.clearance_cost,
+          diag.centerline_avg_clearance, diag.centerline_min_clearance,
+          diag.centerline_cost, diag.smoothness_cost,
+          diag.pass_gain, diag.pass_length, diag.pass_density,
+          diag.pass_direction, diag.pass_forward, diag.pass_clearance,
+          diag.pass_centerline, diag.pass_all, diag.leaf_position.x(),
+          diag.leaf_position.y(), diag.leaf_position.z());
     }
   }
 
+  const bool forward_completion_mode =
+      planning_params_.forward_exploration_enable &&
+      planning_params_.forward_completion_only;
+  const bool forward_completion =
+      forward_valid_path_count <
+      planning_params_.forward_completion_min_valid_paths;
   last_local_frontier_count_ = leaf_frontier_count;
-  last_local_valid_path_count_ = paths_passing_all_thresholds;
+  last_local_valid_path_count_ =
+      forward_completion_mode ? forward_valid_path_count
+                              : paths_passing_all_thresholds;
   last_local_completion_candidate_ =
-      !frontier_exists && (leaf_frontier_count == 0) &&
-      (paths_passing_all_thresholds == 0) &&
-      (best_gain <= planning_params_.min_gain_threshold);
+      forward_completion_mode
+          ? forward_completion
+          : (!frontier_exists && (leaf_frontier_count == 0) &&
+             (paths_passing_all_thresholds == 0) &&
+             (best_gain <= planning_params_.min_gain_threshold));
   ROS_WARN(
       "[RRG][COMPLETE] Local completion check: leaf_frontier=%d "
       "path_frontier_exists=%d pass_all=%d best_gain=%.2f "
+      "forward_valid=%d forward_min=%d forward_completion=%d "
       "completion_candidate=%d",
       leaf_frontier_count, frontier_exists, paths_passing_all_thresholds,
-      best_gain, last_local_completion_candidate_);
+      best_gain, forward_valid_path_count,
+      planning_params_.forward_completion_min_valid_paths, forward_completion,
+      last_local_completion_candidate_);
 
   Timer tc;
   double dt;
 
   if (planning_params_.auto_global_planner_enable) {
-    if (!frontier_exists || paths_passing_all_thresholds <= 0 ||
-        best_gain <= planning_params_.min_gain_threshold) {
+    const bool low_gain_for_global =
+        forward_completion_mode
+            ? forward_completion
+            : (!frontier_exists || paths_passing_all_thresholds <= 0 ||
+               best_gain <= planning_params_.min_gain_threshold);
+    if (low_gain_for_global) {
       ++num_low_gain_iters_;
       ROS_WARN_COND(
           global_verbosity >= Verbosity::WARN,
-          "No valid local exploration path. frontier_exists=%d pass_all=%d "
-          "best_gain=%.2f total rounds: %d",
-          frontier_exists, paths_passing_all_thresholds, best_gain,
+          "No valid forward/local exploration path. frontier_exists=%d "
+          "pass_all=%d forward_valid=%d forward_mode=%d best_gain=%.2f "
+          "total rounds: %d",
+          frontier_exists, paths_passing_all_thresholds,
+          forward_valid_path_count, forward_completion_mode, best_gain,
           num_low_gain_iters_);
     } else {
       if (num_low_gain_iters_ > 0) --num_low_gain_iters_;
@@ -5641,6 +5839,16 @@ std::vector<geometry_msgs::Pose> Rrg::getBestPathSimplified()
     addRefPathToGraph(global_graph_, ref_vertices);
   }
 
+  if (planning_params_.final_shortcut_enable) {
+    std::vector<geometry_msgs::Pose> shortcut_path;
+    if (shortcutPath(ret, shortcut_path, "best_path_simplified")) {
+      ret = shortcut_path;
+      ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                    "[RRG][FINAL_PATH] shortcut accepted size=%zu",
+                    ret.size());
+    }
+  }
+
   // Interpolate path
   if(planning_params_.path_interpolation_distance > 0.0) {
     const double kInterpolationDistance =
@@ -5652,9 +5860,11 @@ std::vector<geometry_msgs::Pose> Rrg::getBestPathSimplified()
     }
   }
 
-  if (!ret.empty() && !isPathCollisionFree(ret, robot_box_size_)) {
+  if (!ret.empty() &&
+      !isFinalPathSafeWithDirtyRootEscape(
+          ret, robot_box_size_, "best_path_simplified/final")) {
     ROS_WARN(
-        "[RRG][FINAL_PATH] Post-processed path failed collision check, "
+        "[RRG][FINAL_PATH] Post-processed path failed final safety check, "
         "size=%zu length=%.2f returning empty path instead of executing it.",
         ret.size(), traverse_length);
     return empty_path;
@@ -5876,6 +6086,16 @@ std::vector<geometry_msgs::Pose> Rrg::getBestPath(std::string tgt_frame,
     addRefPathToGraph(global_graph_, ref_vertices);
   }
 
+  if (planning_params_.final_shortcut_enable) {
+    std::vector<geometry_msgs::Pose> shortcut_path;
+    if (shortcutPath(ret, shortcut_path, "best_path")) {
+      ret = shortcut_path;
+      ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
+                    "[RRG][FINAL_PATH] shortcut accepted size=%zu",
+                    ret.size());
+    }
+  }
+
   // Interpolate path
   if(planning_params_.path_interpolation_distance > 0.0) {
     const double kInterpolationDistance =
@@ -5887,9 +6107,11 @@ std::vector<geometry_msgs::Pose> Rrg::getBestPath(std::string tgt_frame,
     }
   }
 
-  if (!ret.empty() && !isPathCollisionFree(ret, robot_box_size_)) {
+  if (!ret.empty() &&
+      !isFinalPathSafeWithDirtyRootEscape(ret, robot_box_size_,
+                                          "best_path/final")) {
     ROS_WARN(
-        "[RRG][FINAL_PATH] Post-processed path failed collision check, "
+        "[RRG][FINAL_PATH] Post-processed path failed final safety check, "
         "size=%zu length=%.2f returning empty path instead of executing it.",
         ret.size(), traverse_length);
     return empty_path;
@@ -8078,15 +8300,21 @@ void Rrg::setState(StateVec& state) {
 
 void Rrg::freePointCloudtimerCallback(const ros::TimerEvent& event) {
   if (!planning_params_.freespace_cloud_enable) return;
-  if(!odometry_ready) return;
+  if (!odometry_ready) {
+    ROS_WARN_THROTTLE(
+        5.0,
+        "[RRG][FREE_CLOUD] waiting for odometry; freespace cloud not published");
+    return;
+  }
 
   auto t1 = std::chrono::high_resolution_clock::now();
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr free_cloud_body(
-      new pcl::PointCloud<pcl::PointXYZ>);
+  size_t published_points = 0;
 
   std::vector<Eigen::Vector3d> multiray_endpoints_body;
   for (auto sensor_name : free_frustum_params_.sensor_list) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr free_cloud_body(
+        new pcl::PointCloud<pcl::PointXYZ>);
     StateVec state;
     state[0] = current_state_[0];
     state[1] = current_state_[1];
@@ -8112,11 +8340,20 @@ void Rrg::freePointCloudtimerCallback(const ros::TimerEvent& event) {
         free_frustum_params_.sensor[sensor_name].frame_id;
     out_cloud.header.stamp = ros::Time::now();
     free_cloud_pub_.publish(out_cloud);
+    published_points += free_cloud->points.size();
   }
 
   auto t2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = t2 - t1;
-  // ROS_WARN_COND(global_verbosity >= Verbosity::WARN, "Free cloud time: %f s", elapsed.count());
+  ROS_INFO_THROTTLE(
+      5.0,
+      "[RRG][FREE_CLOUD] published points=%zu sensors=%zu time=%.4fs frame=%s",
+      published_points, free_frustum_params_.sensor_list.size(),
+      elapsed.count(),
+      free_frustum_params_.sensor_list.empty()
+          ? "none"
+          : free_frustum_params_.sensor[free_frustum_params_.sensor_list.front()]
+                .frame_id.c_str());
 }
 
 void Rrg::timerCallback(const ros::TimerEvent& event) {
@@ -10127,6 +10364,678 @@ bool Rrg::isPathCollisionFree(const std::vector<geometry_msgs::Pose>& path,
   return true;
 }
 
+bool Rrg::isPathStatusFreeWithEndpointTolerance(
+    const Eigen::Vector3d& start, const Eigen::Vector3d& end,
+    const Eigen::Vector3d& robot_size, bool stop_at_unknown_voxel,
+    bool tolerate_start, bool tolerate_end, const std::string& log_context) {
+  const VoxelStatus full_status = map_manager_->getPathStatus(
+      start, end, robot_size, stop_at_unknown_voxel);
+  if (VoxelStatus::kFree == full_status) {
+    return true;
+  }
+
+  if (!planning_params_.dirty_start_edge_tolerance_enable ||
+      (!tolerate_start && !tolerate_end)) {
+    return false;
+  }
+
+  const Eigen::Vector3d delta = end - start;
+  const double length = delta.norm();
+  const double tolerance =
+      std::min(planning_params_.dirty_start_edge_tolerance_dist,
+               std::max(0.0, 0.8 * length));
+  if (length < 1e-3 || tolerance <= 1e-3) {
+    return false;
+  }
+
+  const Eigen::Vector3d direction = delta / length;
+  Eigen::Vector3d checked_start = start;
+  Eigen::Vector3d checked_end = end;
+  if (tolerate_start) {
+    checked_start = start + tolerance * direction;
+  }
+  if (tolerate_end) {
+    checked_end = end - tolerance * direction;
+  }
+  if ((checked_end - checked_start).norm() < 1e-3) {
+    ROS_WARN_THROTTLE(
+        1.0,
+        "[RRG][DIRTY_START] %s accepted short root edge by tolerance %.2f "
+        "full_status=%s",
+        log_context.c_str(), tolerance, voxelStatusToString(full_status));
+    return true;
+  }
+
+  const VoxelStatus trimmed_status = map_manager_->getPathStatus(
+      checked_start, checked_end, robot_size, stop_at_unknown_voxel);
+  if (VoxelStatus::kFree == trimmed_status) {
+    ROS_WARN_THROTTLE(
+        1.0,
+        "[RRG][DIRTY_START] %s accepted root edge after trimming %.2fm "
+        "full_status=%s checked=[%.2f %.2f %.2f]->[%.2f %.2f %.2f]",
+        log_context.c_str(), tolerance, voxelStatusToString(full_status),
+        checked_start.x(), checked_start.y(), checked_start.z(),
+        checked_end.x(), checked_end.y(), checked_end.z());
+    return true;
+  }
+  return false;
+}
+
+bool Rrg::trimPathPrefixByDistance(
+    const std::vector<geometry_msgs::Pose>& path, double trim_dist,
+    std::vector<geometry_msgs::Pose>& trimmed_path, Eigen::Vector3d& trim_point) {
+  trimmed_path.clear();
+  if (path.size() < 2 || trim_dist <= 1e-3) {
+    return false;
+  }
+
+  double remaining = trim_dist;
+  for (size_t i = 0; i + 1 < path.size(); ++i) {
+    const Eigen::Vector3d start(path[i].position.x, path[i].position.y,
+                                path[i].position.z);
+    const Eigen::Vector3d end(path[i + 1].position.x, path[i + 1].position.y,
+                              path[i + 1].position.z);
+    const Eigen::Vector3d delta = end - start;
+    const double length = delta.norm();
+    if (length < 1e-6) {
+      continue;
+    }
+
+    if (remaining <= length) {
+      const double alpha = remaining / length;
+      trim_point = start + alpha * delta;
+      geometry_msgs::Pose trim_pose = path[i];
+      trim_pose.position.x = trim_point.x();
+      trim_pose.position.y = trim_point.y();
+      trim_pose.position.z = trim_point.z();
+      trim_pose.orientation = path[i + 1].orientation;
+      trimmed_path.push_back(trim_pose);
+      for (size_t j = i + 1; j < path.size(); ++j) {
+        trimmed_path.push_back(path[j]);
+      }
+      return trimmed_path.size() >= 2;
+    }
+
+    remaining -= length;
+  }
+
+  return false;
+}
+
+bool Rrg::isFinalPathSafeWithDirtyRootEscape(
+    const std::vector<geometry_msgs::Pose>& path,
+    const Eigen::Vector3d& robot_size, const std::string& log_context) {
+  if (path.empty()) {
+    return true;
+  }
+
+  const bool strict_collision_ok =
+      isPathCollisionFree(path, robot_size, true, true, log_context);
+  if (strict_collision_ok && isPathClearanceSafe(path, log_context)) {
+    return true;
+  }
+
+  if (!planning_params_.dirty_root_escape_enable || path.size() < 2) {
+    return false;
+  }
+
+  const Eigen::Vector3d root(path.front().position.x, path.front().position.y,
+                             path.front().position.z);
+  const Eigen::Vector3d root_check = root + robot_params_.center_offset;
+  const VoxelStatus root_status =
+      map_manager_->getBoxStatus(root_check, robot_size, true);
+
+  double path_length = 0.0;
+  for (size_t i = 0; i + 1 < path.size(); ++i) {
+    const Eigen::Vector3d start(path[i].position.x, path[i].position.y,
+                                path[i].position.z);
+    const Eigen::Vector3d end(path[i + 1].position.x, path[i + 1].position.y,
+                              path[i + 1].position.z);
+    path_length += (end - start).norm();
+  }
+  const double trim_dist =
+      std::min(std::max(0.0, planning_params_.dirty_root_escape_dist),
+               std::max(0.0, 0.8 * path_length));
+
+  std::vector<geometry_msgs::Pose> trimmed_path;
+  Eigen::Vector3d trim_point;
+  if (!trimPathPrefixByDistance(path, trim_dist, trimmed_path, trim_point)) {
+    ROS_WARN(
+        "[RRG][DIRTY_ROOT_ESCAPE] %s rejected: cannot trim path prefix "
+        "dist=%.2f length=%.2f size=%zu",
+        log_context.c_str(), trim_dist, path_length, path.size());
+    return false;
+  }
+
+  double root_clearance = map_manager_->getPointDistance(root);
+  double trim_clearance = map_manager_->getPointDistance(trim_point);
+  if (!std::isfinite(root_clearance) || root_clearance < 0.0) {
+    root_clearance = 0.0;
+  }
+  if (!std::isfinite(trim_clearance) || trim_clearance < 0.0) {
+    trim_clearance = 0.0;
+  }
+
+  const double clearance_gain = trim_clearance - root_clearance;
+  const bool clearance_improved =
+      clearance_gain >= planning_params_.dirty_root_escape_min_clearance_gain;
+  const bool target_clearance_ok =
+      trim_clearance >= planning_params_.dirty_root_escape_min_target_clearance;
+  if (!clearance_improved && !target_clearance_ok) {
+    ROS_WARN(
+        "[RRG][DIRTY_ROOT_ESCAPE] %s rejected: not moving to clearer space "
+        "root=%.3f trim=%.3f gain=%.3f required_gain=%.3f "
+        "required_target=%.3f trim=[%.2f %.2f %.2f]",
+        log_context.c_str(), root_clearance, trim_clearance, clearance_gain,
+        planning_params_.dirty_root_escape_min_clearance_gain,
+        planning_params_.dirty_root_escape_min_target_clearance, trim_point.x(),
+        trim_point.y(), trim_point.z());
+    return false;
+  }
+
+  if (!isPathCollisionFree(trimmed_path, robot_size, true, true,
+                           log_context + "/dirty_root_trimmed")) {
+    ROS_WARN(
+        "[RRG][DIRTY_ROOT_ESCAPE] %s rejected: trimmed path still collides "
+        "root_status=%s trim_dist=%.2f trim=[%.2f %.2f %.2f]",
+        log_context.c_str(), voxelStatusToString(root_status), trim_dist,
+        trim_point.x(), trim_point.y(), trim_point.z());
+    return false;
+  }
+
+  if (!isPathClearanceSafe(trimmed_path, log_context + "/dirty_root_trimmed")) {
+    ROS_WARN(
+        "[RRG][DIRTY_ROOT_ESCAPE] %s rejected: trimmed path violates "
+        "clearance. root_status=%s trim_dist=%.2f",
+        log_context.c_str(), voxelStatusToString(root_status), trim_dist);
+    return false;
+  }
+
+  ROS_WARN(
+      "[RRG][DIRTY_ROOT_ESCAPE] %s accepted dirty root prefix escape: "
+      "root_status=%s "
+      "trim_dist=%.2f root_clearance=%.3f trim_clearance=%.3f gain=%.3f "
+      "trimmed_size=%zu original_size=%zu",
+      log_context.c_str(), voxelStatusToString(root_status), trim_dist,
+      root_clearance, trim_clearance, clearance_gain, trimmed_path.size(),
+      path.size());
+  return true;
+}
+
+bool Rrg::computePathClearanceCost(const std::vector<Eigen::Vector3d>& path,
+                                   double& min_clearance,
+                                   double& clearance_cost) {
+  min_clearance = std::numeric_limits<double>::infinity();
+  clearance_cost = 0.0;
+  if (!planning_params_.wall_clearance_enable || path.empty()) return true;
+
+  const double min_clearance_required =
+      std::max(0.0, planning_params_.wall_clearance_min);
+  const double soft_clearance =
+      std::max(min_clearance_required, planning_params_.wall_clearance_soft);
+  const double sample_step =
+      std::max(0.05, planning_params_.wall_clearance_sample_step);
+
+  auto accumulate_sample = [&](const Eigen::Vector3d& point,
+                               int& sample_count) {
+    double distance = map_manager_->getPointDistance(point);
+    if (!std::isfinite(distance) || distance < 0.0) {
+      distance = 0.0;
+    }
+    min_clearance = std::min(min_clearance, distance);
+    if (distance < soft_clearance) {
+      const double denom = std::max(soft_clearance, 1e-3);
+      const double deficit = (soft_clearance - distance) / denom;
+      clearance_cost += deficit * deficit;
+    }
+    ++sample_count;
+  };
+
+  int sample_count = 0;
+  accumulate_sample(path.front(), sample_count);
+  for (size_t i = 1; i < path.size(); ++i) {
+    const Eigen::Vector3d start = path[i - 1];
+    const Eigen::Vector3d end = path[i];
+    const Eigen::Vector3d delta = end - start;
+    const double length = delta.norm();
+    const int steps = std::max(1, static_cast<int>(std::ceil(length / sample_step)));
+    for (int s = 1; s <= steps; ++s) {
+      const double alpha = static_cast<double>(s) / static_cast<double>(steps);
+      accumulate_sample(start + alpha * delta, sample_count);
+    }
+  }
+
+  if (sample_count > 0) {
+    clearance_cost /= static_cast<double>(sample_count);
+  }
+  return min_clearance >= min_clearance_required;
+}
+
+bool Rrg::computePathClearanceCost(const std::vector<geometry_msgs::Pose>& path,
+                                   double& min_clearance,
+                                   double& clearance_cost) {
+  std::vector<Eigen::Vector3d> path_vec;
+  path_vec.reserve(path.size());
+  for (const auto& pose : path) {
+    path_vec.emplace_back(pose.position.x, pose.position.y, pose.position.z);
+  }
+  return computePathClearanceCost(path_vec, min_clearance, clearance_cost);
+}
+
+double Rrg::computePathCenterlineCost(const std::vector<Eigen::Vector3d>& path,
+                                      double& avg_clearance,
+                                      double& min_clearance) {
+  avg_clearance = 0.0;
+  min_clearance = std::numeric_limits<double>::infinity();
+  if (!planning_params_.centerline_bias_enable || path.empty()) return 0.0;
+
+  const double target =
+      std::max(0.05, planning_params_.centerline_clearance_target);
+  const double sample_step =
+      std::max(0.05, planning_params_.centerline_sample_step);
+  double centerline_cost = 0.0;
+  int sample_count = 0;
+
+  auto accumulate_sample = [&](const Eigen::Vector3d& point) {
+    double distance = map_manager_->getPointDistance(point);
+    if (!std::isfinite(distance) || distance < 0.0) distance = 0.0;
+    min_clearance = std::min(min_clearance, distance);
+    avg_clearance += distance;
+    const double deficit = std::max(0.0, target - distance) / target;
+    centerline_cost += deficit * deficit;
+    ++sample_count;
+  };
+
+  accumulate_sample(path.front());
+  for (size_t i = 1; i < path.size(); ++i) {
+    const Eigen::Vector3d start = path[i - 1];
+    const Eigen::Vector3d end = path[i];
+    const Eigen::Vector3d delta = end - start;
+    const double length = delta.norm();
+    const int steps =
+        std::max(1, static_cast<int>(std::ceil(length / sample_step)));
+    for (int s = 1; s <= steps; ++s) {
+      const double alpha = static_cast<double>(s) / static_cast<double>(steps);
+      accumulate_sample(start + alpha * delta);
+    }
+  }
+
+  if (sample_count > 0) {
+    avg_clearance /= static_cast<double>(sample_count);
+    centerline_cost /= static_cast<double>(sample_count);
+  }
+  return centerline_cost;
+}
+
+double Rrg::computePathSmoothnessCost(const std::vector<Eigen::Vector3d>& path) {
+  if (!planning_params_.path_smoothness_enable || path.size() < 3) {
+    return 0.0;
+  }
+
+  double cost = 0.0;
+  int turn_count = 0;
+  for (size_t i = 1; i + 1 < path.size(); ++i) {
+    Eigen::Vector3d prev = path[i] - path[i - 1];
+    Eigen::Vector3d next = path[i + 1] - path[i];
+    prev.z() = 0.0;
+    next.z() = 0.0;
+    const double prev_norm = prev.norm();
+    const double next_norm = next.norm();
+    if (prev_norm <= 1e-3 || next_norm <= 1e-3) continue;
+    prev /= prev_norm;
+    next /= next_norm;
+    const double dot = std::max(-1.0, std::min(1.0, prev.dot(next)));
+    const double turn_angle = std::acos(dot);
+    cost += turn_angle * turn_angle;
+    ++turn_count;
+  }
+
+  if (turn_count > 0) cost /= static_cast<double>(turn_count);
+  return cost;
+}
+
+bool Rrg::shortcutPath(const std::vector<geometry_msgs::Pose>& path_orig,
+                       std::vector<geometry_msgs::Pose>& path_shortcut,
+                       const std::string& log_context) {
+  path_shortcut.clear();
+  if (!planning_params_.final_shortcut_enable || path_orig.size() < 3) {
+    return false;
+  }
+
+  auto pose_to_vec = [](const geometry_msgs::Pose& pose) {
+    return Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
+  };
+  auto segment_length = [&](size_t from, size_t to) {
+    double length = 0.0;
+    for (size_t i = from + 1; i <= to; ++i) {
+      length += (pose_to_vec(path_orig[i]) - pose_to_vec(path_orig[i - 1])).norm();
+    }
+    return length;
+  };
+  auto make_two_pose_path = [](const geometry_msgs::Pose& start,
+                               const geometry_msgs::Pose& end) {
+    std::vector<geometry_msgs::Pose> candidate;
+    candidate.push_back(start);
+    candidate.push_back(end);
+    return candidate;
+  };
+  auto segment_is_safe = [&](size_t from, size_t to) {
+    const Eigen::Vector3d start = pose_to_vec(path_orig[from]);
+    const Eigen::Vector3d end = pose_to_vec(path_orig[to]);
+    if (!isSegmentInsideGlobalPlanningBounds(
+            start, end, robot_box_size_, true, log_context + "/shortcut")) {
+      return false;
+    }
+    if (planning_params_.geofence_checking_enable &&
+        GeofenceManager::CoordinateStatus::kOK !=
+            geofence_manager_->getPathStatus(
+                Eigen::Vector2d(start.x(), start.y()),
+                Eigen::Vector2d(end.x(), end.y()),
+                Eigen::Vector2d(robot_box_size_.x(), robot_box_size_.y()))) {
+      return false;
+    }
+    if (VoxelStatus::kFree !=
+        map_manager_->getPathStatus(start, end, robot_box_size_, true)) {
+      return false;
+    }
+    if (planning_params_.wall_clearance_enable) {
+      auto candidate_path = make_two_pose_path(path_orig[from], path_orig[to]);
+      double min_clearance = 0.0;
+      double clearance_cost = 0.0;
+      computePathClearanceCost(candidate_path, min_clearance, clearance_cost);
+      const double required_clearance =
+          planning_params_.wall_clearance_min +
+          planning_params_.final_shortcut_clearance_margin;
+      if (min_clearance < required_clearance) return false;
+    }
+    return true;
+  };
+
+  path_shortcut.push_back(path_orig.front());
+  size_t current = 0;
+  int shortcuts = 0;
+  const size_t max_skip =
+      static_cast<size_t>(std::max(1, planning_params_.final_shortcut_max_skip));
+  while (current + 1 < path_orig.size()) {
+    size_t best_next = current + 1;
+    const size_t furthest =
+        std::min(path_orig.size() - 1, current + max_skip + 1);
+    for (size_t candidate = furthest; candidate > current + 1; --candidate) {
+      const double original_len = segment_length(current, candidate);
+      const double direct_len =
+          (pose_to_vec(path_orig[candidate]) - pose_to_vec(path_orig[current])).norm();
+      if (original_len - direct_len <
+          planning_params_.final_shortcut_min_savings) {
+        continue;
+      }
+      if (segment_is_safe(current, candidate)) {
+        best_next = candidate;
+        break;
+      }
+    }
+    if (best_next > current + 1) ++shortcuts;
+    path_shortcut.push_back(path_orig[best_next]);
+    current = best_next;
+  }
+
+  if (shortcuts <= 0 || path_shortcut.size() >= path_orig.size()) {
+    path_shortcut.clear();
+    return false;
+  }
+
+  for (size_t i = 0; i + 1 < path_shortcut.size(); ++i) {
+    Eigen::Vector3d dir = pose_to_vec(path_shortcut[i + 1]) -
+                          pose_to_vec(path_shortcut[i]);
+    if (dir.head<2>().norm() <= 1e-3) continue;
+    if (planning_params_.planning_backward) dir = -dir;
+    const double yawhalf = 0.5 * std::atan2(dir.y(), dir.x());
+    path_shortcut[i].orientation.x = 0.0;
+    path_shortcut[i].orientation.y = 0.0;
+    path_shortcut[i].orientation.z = std::sin(yawhalf);
+    path_shortcut[i].orientation.w = std::cos(yawhalf);
+  }
+  if (path_shortcut.size() >= 2) {
+    path_shortcut.back().orientation =
+        path_shortcut[path_shortcut.size() - 2].orientation;
+  }
+
+  ROS_WARN(
+      "[RRG][SHORTCUT] %s reduced path size %zu -> %zu shortcuts=%d",
+      log_context.c_str(), path_orig.size(), path_shortcut.size(), shortcuts);
+  return true;
+}
+
+bool Rrg::isPathClearanceSafe(const std::vector<geometry_msgs::Pose>& path,
+                              const std::string& log_context) {
+  if (!planning_params_.wall_clearance_enable ||
+      !planning_params_.wall_clearance_reject_final_path) {
+    return true;
+  }
+
+  double min_clearance = 0.0;
+  double clearance_cost = 0.0;
+  const bool safe =
+      computePathClearanceCost(path, min_clearance, clearance_cost);
+  if (!safe) {
+    ROS_WARN(
+        "[RRG][CLEARANCE] %s rejected final path: min=%.3f required=%.3f "
+        "cost=%.3f size=%zu",
+        log_context.c_str(), min_clearance, planning_params_.wall_clearance_min,
+        clearance_cost, path.size());
+  } else {
+    ROS_INFO(
+        "[RRG][CLEARANCE] %s final path accepted: min=%.3f required=%.3f "
+        "cost=%.3f size=%zu",
+        log_context.c_str(), min_clearance, planning_params_.wall_clearance_min,
+        clearance_cost, path.size());
+  }
+  return safe;
+}
+
+bool Rrg::isStartClearWithMinBound() {
+  StateVec root_state = planning_params_.use_current_state ? current_state_
+                                                           : state_for_planning_;
+  const Eigen::Vector3d start_check_center =
+      root_state.head(3) + robot_params_.center_offset;
+  const Eigen::Vector3d start_check_box_size =
+      robot_params_.size + robot_params_.size_extension_min;
+  const VoxelStatus start_status =
+      map_manager_->getBoxStatus(start_check_center, start_check_box_size, true);
+  ROS_INFO(
+      "[RRG][START_CHECK_MIN] status=%s center=[%.2f %.2f %.2f] "
+      "size=[%.2f %.2f %.2f]",
+      voxelStatusToString(start_status), start_check_center.x(),
+      start_check_center.y(), start_check_center.z(),
+      start_check_box_size.x(), start_check_box_size.y(),
+      start_check_box_size.z());
+  return start_status == VoxelStatus::kFree;
+}
+
+bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
+  path.clear();
+  if (!planning_params_.start_recovery_enable) {
+    return false;
+  }
+
+  if (isStartClearWithMinBound()) {
+    ROS_WARN(
+        "[RRG][START_RECOVERY] skipped because min-bound start check is free");
+    return false;
+  }
+
+  StateVec root_state = planning_params_.use_current_state ? current_state_
+                                                           : state_for_planning_;
+  const Eigen::Vector3d root_pos = root_state.head(3);
+  const Eigen::Vector3d root_check_pos = root_pos + robot_params_.center_offset;
+  const VoxelStatus root_status =
+      map_manager_->getBoxStatus(root_check_pos, robot_box_size_, true);
+
+  ROS_WARN(
+      "[RRG][START_RECOVERY] requested root_status=%s root=[%.2f %.2f %.2f "
+      "yaw=%.2f] radius=[%.2f %.2f] step=%.2f angle_step=%.1f",
+      voxelStatusToString(root_status), root_state[0], root_state[1],
+      root_state[2], root_state[3], planning_params_.start_recovery_radius_min,
+      planning_params_.start_recovery_radius_max,
+      planning_params_.start_recovery_radius_step,
+      planning_params_.start_recovery_angle_step_deg);
+
+  struct RecoveryCandidate {
+    Eigen::Vector3d pos;
+    double radius;
+    double angle;
+    double forward_dot;
+    double clearance;
+    double score;
+  };
+
+  std::vector<RecoveryCandidate> candidates;
+  const double angle_step =
+      planning_params_.start_recovery_angle_step_deg * M_PI / 180.0;
+  const Eigen::Vector3d forward_vec(std::cos(root_state[3]),
+                                    std::sin(root_state[3]), 0.0);
+  for (double radius = planning_params_.start_recovery_radius_min;
+       radius <= planning_params_.start_recovery_radius_max + 1e-6;
+       radius += planning_params_.start_recovery_radius_step) {
+    for (double angle = 0.0; angle < 2.0 * M_PI - 1e-6;
+         angle += angle_step) {
+      const Eigen::Vector3d dir(std::cos(angle), std::sin(angle), 0.0);
+      const Eigen::Vector3d candidate_pos = root_pos + radius * dir;
+      const Eigen::Vector3d candidate_check_pos =
+          candidate_pos + robot_params_.center_offset;
+
+      if (!isPointInsideGlobalPlanningBounds(candidate_pos, robot_box_size_,
+                                             false,
+                                             "start_recovery_candidate")) {
+        continue;
+      }
+
+      const VoxelStatus candidate_status = map_manager_->getBoxStatus(
+          candidate_check_pos, robot_box_size_, true);
+      const bool candidate_unknown =
+          candidate_status == VoxelStatus::kUnknown;
+      if (candidate_status != VoxelStatus::kFree &&
+          !(planning_params_.start_recovery_allow_unknown &&
+            candidate_unknown)) {
+        ROS_INFO(
+            "[RRG][START_RECOVERY] candidate radius=%.2f angle=%.2f "
+            "status=%s pass=0",
+            radius, angle, voxelStatusToString(candidate_status));
+        continue;
+      }
+
+      double clearance = map_manager_->getPointDistance(candidate_pos);
+      if (!std::isfinite(clearance) || clearance < 0.0) clearance = 0.0;
+      if (!candidate_unknown &&
+          clearance < planning_params_.start_recovery_min_clearance) {
+        ROS_INFO(
+            "[RRG][START_RECOVERY] candidate radius=%.2f angle=%.2f "
+            "clearance=%.3f required=%.3f pass=0",
+            radius, angle, clearance,
+            planning_params_.start_recovery_min_clearance);
+        continue;
+      }
+      if (candidate_unknown) {
+        ROS_INFO(
+            "[RRG][START_RECOVERY] candidate radius=%.2f angle=%.2f "
+            "status=unknown clearance=%.3f pass=1 allow_unknown=1",
+            radius, angle, clearance);
+      }
+
+      const double forward_dot = dir.dot(forward_vec);
+      const double target_radius =
+          std::min(planning_params_.start_recovery_radius_max,
+                   std::max(planning_params_.start_recovery_radius_min, 1.20));
+      double score = std::fabs(radius - target_radius) - 0.50 * clearance;
+      if (planning_params_.start_recovery_prefer_forward) {
+        score -= 0.50 * forward_dot;
+      }
+      candidates.push_back(
+          {candidate_pos, radius, angle, forward_dot, clearance, score});
+    }
+  }
+
+  std::sort(candidates.begin(), candidates.end(),
+            [](const RecoveryCandidate& lhs,
+               const RecoveryCandidate& rhs) { return lhs.score < rhs.score; });
+
+  const double path_resolution =
+      std::max(0.05, planning_params_.start_recovery_path_resolution);
+  const double ignore_start_dist =
+      std::max(0.0, planning_params_.start_recovery_ignore_start_dist);
+
+  for (const RecoveryCandidate& candidate : candidates) {
+    const Eigen::Vector3d delta = candidate.pos - root_pos;
+    const double length = delta.norm();
+    if (length < 1e-3) {
+      continue;
+    }
+
+    bool segment_safe = true;
+    const int steps =
+        std::max(1, static_cast<int>(std::ceil(length / path_resolution)));
+    for (int i = 1; i <= steps; ++i) {
+      const double alpha = static_cast<double>(i) / static_cast<double>(steps);
+      if (alpha * length < ignore_start_dist && i < steps) {
+        continue;
+      }
+      const Eigen::Vector3d sample = root_pos + alpha * delta;
+      const Eigen::Vector3d sample_check = sample + robot_params_.center_offset;
+      if (!isPointInsideGlobalPlanningBounds(sample, robot_box_size_, false,
+                                             "start_recovery_segment")) {
+        segment_safe = false;
+        break;
+      }
+      const VoxelStatus sample_status =
+          map_manager_->getBoxStatus(sample_check, robot_box_size_, true);
+      if (sample_status != VoxelStatus::kFree &&
+          !(planning_params_.start_recovery_allow_unknown &&
+            sample_status == VoxelStatus::kUnknown)) {
+        ROS_INFO(
+            "[RRG][START_RECOVERY] segment reject radius=%.2f angle=%.2f "
+            "sample=%d/%d status=%s pos=[%.2f %.2f %.2f]",
+            candidate.radius, candidate.angle, i, steps,
+            voxelStatusToString(sample_status), sample.x(), sample.y(),
+            sample.z());
+        segment_safe = false;
+        break;
+      }
+    }
+    if (!segment_safe) {
+      continue;
+    }
+
+    const double yaw = std::atan2(delta.y(), delta.x());
+    path.clear();
+    const int path_steps =
+        std::max(1, static_cast<int>(std::ceil(length / path_resolution)));
+    for (int i = 0; i <= path_steps; ++i) {
+      const double alpha =
+          static_cast<double>(i) / static_cast<double>(path_steps);
+      const Eigen::Vector3d point = root_pos + alpha * delta;
+      geometry_msgs::Pose pose;
+      pose.position.x = point.x();
+      pose.position.y = point.y();
+      pose.position.z = point.z();
+      pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
+      path.push_back(pose);
+    }
+
+    ROS_WARN(
+        "[RRG][START_RECOVERY] recovery path accepted size=%zu length=%.2f "
+        "radius=%.2f angle=%.2f dot=%.3f clearance=%.3f ignored_start=%.2f",
+        path.size(), length, candidate.radius, candidate.angle,
+        candidate.forward_dot, candidate.clearance, ignore_start_dist);
+    visualization_->visualizeRefPath(path);
+    return true;
+  }
+
+  ROS_WARN(
+      "[RRG][START_RECOVERY] failed, no clear nearby pose. candidates=%zu "
+      "root_status=%s",
+      candidates.size(), voxelStatusToString(root_status));
+  return false;
+}
+
 bool Rrg::searchPathThroughCenterPoint(const StateVec& current_state,
                                        const Eigen::Vector3d& center,
                                        const double& heading,
@@ -10248,6 +11157,8 @@ std::vector<geometry_msgs::Pose> Rrg::searchPathToPassGate() {
   Eigen::Vector3d best_voxel;
   Eigen::Vector3d bbx_size;
   bool stop = false;
+  const BoundModeType saved_bound_mode = robot_params_.bound_mode;
+  const Eigen::Vector3d saved_robot_box_size = robot_box_size_;
   for (int bound_level = 0; (!stop) && (bound_level < 3); ++bound_level) {
     robot_params_.setBoundMode((BoundModeType)bound_level);
     // Update the robot size for planning.
@@ -10317,6 +11228,11 @@ std::vector<geometry_msgs::Pose> Rrg::searchPathToPassGate() {
       }
     }
   }
+  robot_params_.setBoundMode(saved_bound_mode);
+  robot_box_size_ = saved_robot_box_size;
+  ROS_INFO(
+      "[RRG][BOUND_MODE] restored after gate search size=[%.2f %.2f %.2f]",
+      robot_box_size_.x(), robot_box_size_.y(), robot_box_size_.z());
 
   if (stop) {
     // Consider this is homing position.

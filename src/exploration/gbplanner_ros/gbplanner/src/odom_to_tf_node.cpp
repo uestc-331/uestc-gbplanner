@@ -48,6 +48,14 @@ class OdomToTfNode {
 
   void publishTf(const ros::Time& stamp) {
     const ros::Time publish_stamp = stamp.isZero() ? ros::Time::now() : stamp;
+    if (!last_publish_stamp_.isZero() && publish_stamp <= last_publish_stamp_) {
+      ROS_WARN_THROTTLE(
+          5.0,
+          "[odom_to_tf] skip non-increasing TF stamp %.6f <= %.6f for %s -> %s",
+          publish_stamp.toSec(), last_publish_stamp_.toSec(),
+          latest_parent_frame_.c_str(), child_frame_.c_str());
+      return;
+    }
 
     geometry_msgs::TransformStamped tf_msg;
     tf_msg.header.stamp = publish_stamp;
@@ -59,6 +67,7 @@ class OdomToTfNode {
     tf_msg.transform.rotation = latest_odom_.pose.pose.orientation;
 
     broadcaster_.sendTransform(tf_msg);
+    last_publish_stamp_ = publish_stamp;
   }
 
   ros::Subscriber odom_sub_;
@@ -75,6 +84,7 @@ class OdomToTfNode {
 
   nav_msgs::Odometry latest_odom_;
   ros::Time latest_stamp_;
+  ros::Time last_publish_stamp_;
 };
 
 int main(int argc, char** argv) {

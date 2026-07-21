@@ -246,10 +246,23 @@ PlanningParams:
   centerline_sample_step: 0.25
   path_smoothness_enable: true
   path_smoothness_penalty: 2.0
+  # Keep the RRG route topology. Aggressive shortcutting can cut structural
+  # corners even when sparse map artifacts make the local map look permissive.
   final_shortcut_enable: false
-  final_shortcut_max_skip: 8
+  final_shortcut_max_skip: 6
   final_shortcut_min_savings: 0.05
-  final_shortcut_clearance_margin: 0.25
+  final_shortcut_clearance_margin: 0.10
+  path_optimizer_enable: true
+  path_optimizer_iterations: 8
+  path_optimizer_max_time: 0.08
+  path_optimizer_step_size: 0.05
+  path_optimizer_smooth_weight: 1.0
+  path_optimizer_clearance_weight: 0.7
+  path_optimizer_anchor_weight: 0.5
+  path_optimizer_max_deviation: 0.25
+  path_optimizer_gradient_step: 0.12
+  path_optimizer_min_clearance: 0.55
+  path_optimizer_fix_start_points: 2
   forward_exploration_enable: true
   forward_exploration_min_dot: 0.00
   forward_exploration_soft_dot: 0.55

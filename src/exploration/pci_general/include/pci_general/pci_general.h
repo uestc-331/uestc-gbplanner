@@ -40,6 +40,7 @@ class PCIGeneral : public PCIManager {
   double getVelocity(ExecutionPathType path_type);
   bool goToWaypoint(geometry_msgs::Pose &pose);
   bool planAhead() {return ((planner_trigger_lead_time_>0)?true:false);}
+  bool getExecutionProgress(ExecutionProgress &progress) const;
   void allocateYawAlongPath(std::vector<geometry_msgs::Pose> &path) const;
   void allocateYawAlongFistSegment(std::vector<geometry_msgs::Pose> &path) const;
   std::vector<std::string> split_string(std::string input_string);
@@ -259,8 +260,13 @@ class PCIGeneral : public PCIManager {
   double stuck_timeout_;
   double stuck_min_progress_;
   double stuck_dist_margin_;
+  bool waypoint_forward_sync_enable_ = false;
+  int waypoint_forward_sync_window_ = 40;
+  double waypoint_forward_sync_max_distance_ = 0.60;
+  double waypoint_forward_sync_min_improvement_ = 0.05;
 
   int path_waypoint_ind_ = 0;
+  uint64_t execution_sequence_ = 0;
   int waypoint_carrot_slack_ = 5;
   int stuck_wp_index_ = -1;
   double stuck_best_dist_ = std::numeric_limits<double>::infinity();
@@ -314,6 +320,7 @@ class PCIGeneral : public PCIManager {
   void wpCurrCallback(const std_msgs::Int32 &wp);
   void executionTimerCallback(const ros::TimerEvent& event);
   void camPitchCallback(const sensor_msgs::JointState &state);
+  bool synchronizeExecutionWaypoint();
 
   inline double diffPos(const geometry_msgs::Pose &p1, const geometry_msgs::Pose &p2) {
     return std::sqrt( (p1.position.x - p2.position.x) * (p1.position.x - p2.position.x) +
@@ -328,7 +335,8 @@ class PCIGeneral : public PCIManager {
       x += 2 * M_PI;
   }
 
-  double calculateDistance(const geometry_msgs::Pose& p1, const geometry_msgs::Pose& p2);
+  double calculateDistance(const geometry_msgs::Pose& p1,
+                           const geometry_msgs::Pose& p2) const;
   double getEndPointDistanceAlongPath(const std::vector<geometry_msgs::Pose>& path);
 
   bool reconnectPath(const std::vector<geometry_msgs::Pose> &path, std::vector<geometry_msgs::Pose> &path_new);

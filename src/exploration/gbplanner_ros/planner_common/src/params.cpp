@@ -1216,6 +1216,62 @@ bool PlanningParams::loadParams(std::string ns) {
     ROSPARAM_WARN(param_name, final_shortcut_clearance_margin);
   }
 
+  param_name = ns + "/path_optimizer_enable";
+  if (!ros::param::get(param_name, path_optimizer_enable)) {
+    path_optimizer_enable = false;
+    ROSPARAM_WARN(param_name, path_optimizer_enable);
+  }
+  param_name = ns + "/path_optimizer_iterations";
+  if (!ros::param::get(param_name, path_optimizer_iterations)) {
+    path_optimizer_iterations = 8;
+    ROSPARAM_WARN(param_name, path_optimizer_iterations);
+  }
+  param_name = ns + "/path_optimizer_max_time";
+  if (!ros::param::get(param_name, path_optimizer_max_time)) {
+    path_optimizer_max_time = 0.08;
+    ROSPARAM_WARN(param_name, path_optimizer_max_time);
+  }
+  param_name = ns + "/path_optimizer_step_size";
+  if (!ros::param::get(param_name, path_optimizer_step_size)) {
+    path_optimizer_step_size = 0.05;
+    ROSPARAM_WARN(param_name, path_optimizer_step_size);
+  }
+  param_name = ns + "/path_optimizer_smooth_weight";
+  if (!ros::param::get(param_name, path_optimizer_smooth_weight)) {
+    path_optimizer_smooth_weight = 1.0;
+    ROSPARAM_WARN(param_name, path_optimizer_smooth_weight);
+  }
+  param_name = ns + "/path_optimizer_clearance_weight";
+  if (!ros::param::get(param_name, path_optimizer_clearance_weight)) {
+    path_optimizer_clearance_weight = 0.7;
+    ROSPARAM_WARN(param_name, path_optimizer_clearance_weight);
+  }
+  param_name = ns + "/path_optimizer_anchor_weight";
+  if (!ros::param::get(param_name, path_optimizer_anchor_weight)) {
+    path_optimizer_anchor_weight = 0.5;
+    ROSPARAM_WARN(param_name, path_optimizer_anchor_weight);
+  }
+  param_name = ns + "/path_optimizer_max_deviation";
+  if (!ros::param::get(param_name, path_optimizer_max_deviation)) {
+    path_optimizer_max_deviation = 0.25;
+    ROSPARAM_WARN(param_name, path_optimizer_max_deviation);
+  }
+  param_name = ns + "/path_optimizer_gradient_step";
+  if (!ros::param::get(param_name, path_optimizer_gradient_step)) {
+    path_optimizer_gradient_step = 0.12;
+    ROSPARAM_WARN(param_name, path_optimizer_gradient_step);
+  }
+  param_name = ns + "/path_optimizer_min_clearance";
+  if (!ros::param::get(param_name, path_optimizer_min_clearance)) {
+    path_optimizer_min_clearance = wall_clearance_min;
+    ROSPARAM_WARN(param_name, path_optimizer_min_clearance);
+  }
+  param_name = ns + "/path_optimizer_fix_start_points";
+  if (!ros::param::get(param_name, path_optimizer_fix_start_points)) {
+    path_optimizer_fix_start_points = 2;
+    ROSPARAM_WARN(param_name, path_optimizer_fix_start_points);
+  }
+
   if (centerline_clearance_target < wall_clearance_min) {
     ROS_WARN(
         "[PlanningParams] centerline_clearance_target %.2f < "
@@ -1241,6 +1297,21 @@ bool PlanningParams::loadParams(std::string ns) {
   final_shortcut_min_savings = std::max(0.0, final_shortcut_min_savings);
   final_shortcut_clearance_margin =
       std::max(0.0, final_shortcut_clearance_margin);
+  path_optimizer_iterations = std::max(1, path_optimizer_iterations);
+  path_optimizer_max_time = std::max(0.001, path_optimizer_max_time);
+  path_optimizer_step_size = std::max(0.001, path_optimizer_step_size);
+  path_optimizer_smooth_weight = std::max(0.0, path_optimizer_smooth_weight);
+  path_optimizer_clearance_weight =
+      std::max(0.0, path_optimizer_clearance_weight);
+  path_optimizer_anchor_weight = std::max(0.0, path_optimizer_anchor_weight);
+  path_optimizer_max_deviation =
+      std::max(0.0, path_optimizer_max_deviation);
+  path_optimizer_gradient_step =
+      std::max(0.01, path_optimizer_gradient_step);
+  path_optimizer_min_clearance =
+      std::max(wall_clearance_min, path_optimizer_min_clearance);
+  path_optimizer_fix_start_points =
+      std::max(1, path_optimizer_fix_start_points);
 
   param_name = ns + "/forward_exploration_enable";
   if (!ros::param::get(param_name, forward_exploration_enable)) {

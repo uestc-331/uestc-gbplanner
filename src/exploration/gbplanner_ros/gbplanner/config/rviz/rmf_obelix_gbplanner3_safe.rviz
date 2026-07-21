@@ -263,6 +263,14 @@ Visualization Manager:
           Queue Size: 100
           Value: true
         - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /vis/optimized_path
+          Name: OptimizedPath
+          Namespaces:
+            {}
+          Queue Size: 10
+          Value: true
+        - Class: rviz/MarkerArray
           Enabled: false
           Marker Topic: /vis/ray_casting
           Name: RayCasting
@@ -309,6 +317,14 @@ Visualization Manager:
           Namespaces:
             {}
           Queue Size: 100
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /planner_control_interface/preplan_status
+          Name: PreplanStatus
+          Namespaces:
+            {}
+          Queue Size: 10
           Value: true
         - Class: rviz/MarkerArray
           Enabled: true

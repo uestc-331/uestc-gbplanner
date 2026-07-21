@@ -1,0 +1,10 @@
+# Validate a path against the planner's current occupancy and ESDF maps.
+geometry_msgs/Pose[] path
+bool stop_at_unknown_voxel
+---
+bool valid
+bool collision_free
+bool clearance_safe
+float64 min_clearance
+float64 clearance_cost
+string reason

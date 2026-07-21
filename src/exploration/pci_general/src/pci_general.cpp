@@ -562,6 +562,7 @@ namespace explorer
     }
 
     executing_path_ = path_intp;
+    ++execution_sequence_;
     
     samples_array_.header.seq = n_seq_;
     samples_array_.header.stamp = ros::Time::now();
@@ -727,6 +728,91 @@ namespace explorer
     return true;
   }
 
+  bool PCIGeneral::getExecutionProgress(ExecutionProgress &progress) const
+  {
+    progress = ExecutionProgress();
+    if (pci_status_ != PCIStatus::kRunning || executing_path_.empty() ||
+        path_waypoint_ind_ < 0 ||
+        static_cast<size_t>(path_waypoint_ind_) >= executing_path_.size())
+    {
+      return false;
+    }
+
+    progress.valid = true;
+    progress.path_type = current_path_type_;
+    progress.waypoint_index = static_cast<size_t>(path_waypoint_ind_);
+    progress.waypoint_count = executing_path_.size();
+    progress.sequence = execution_sequence_;
+    progress.endpoint = executing_path_.back();
+
+    progress.remaining_distance =
+        calculateDistance(current_pose_, executing_path_[path_waypoint_ind_]);
+    for (size_t i = progress.waypoint_index + 1; i < executing_path_.size(); ++i)
+    {
+      progress.remaining_distance +=
+          calculateDistance(executing_path_[i - 1], executing_path_[i]);
+    }
+
+    double path_velocity = v_max_;
+    if (current_path_type_ == ExecutionPathType::kHomingPath)
+      path_velocity = v_homing_max_;
+    else if (current_path_type_ == ExecutionPathType::kNarrowEnvPath)
+      path_velocity = v_narrow_env_max_;
+    progress.remaining_time =
+        progress.remaining_distance / std::max(0.05, path_velocity);
+    return true;
+  }
+
+  bool PCIGeneral::synchronizeExecutionWaypoint()
+  {
+    if (!waypoint_forward_sync_enable_ || executing_path_.size() < 2 ||
+        path_waypoint_ind_ < 0 ||
+        static_cast<size_t>(path_waypoint_ind_) >= executing_path_.size() - 1)
+    {
+      return false;
+    }
+
+    const size_t current_index = static_cast<size_t>(path_waypoint_ind_);
+    const size_t last_index = executing_path_.size() - 1;
+    const size_t search_end = std::min(
+        last_index,
+        current_index + static_cast<size_t>(waypoint_forward_sync_window_));
+    const double current_distance =
+        calculateDistance(current_pose_, executing_path_[current_index]);
+
+    size_t best_index = current_index;
+    double best_distance = current_distance;
+    for (size_t index = current_index + 1; index <= search_end; ++index)
+    {
+      const double distance =
+          calculateDistance(current_pose_, executing_path_[index]);
+      if (distance < best_distance)
+      {
+        best_distance = distance;
+        best_index = index;
+      }
+    }
+
+    if (best_index == current_index ||
+        best_distance > waypoint_forward_sync_max_distance_ ||
+        current_distance - best_distance <
+            waypoint_forward_sync_min_improvement_)
+    {
+      return false;
+    }
+
+    path_waypoint_ind_ = static_cast<int>(best_index);
+    stuck_wp_index_ = path_waypoint_ind_;
+    stuck_best_dist_ = best_distance;
+    stuck_since_ = ros::Time::now();
+    ROS_WARN_THROTTLE(
+        0.5,
+        "[PCI][EXEC][SYNC] advanced wp=%zu->%zu/%zu old_dist=%.2f new_dist=%.2f window=%d",
+        current_index + 1, best_index + 1, executing_path_.size(),
+        current_distance, best_distance, waypoint_forward_sync_window_);
+    return true;
+  }
+
 
   void PCIGeneral::executionTimerCallback(const ros::TimerEvent &event)
   {
@@ -745,6 +831,8 @@ namespace explorer
         path_waypoint_ind_ = 0;
         return;
       }
+      synchronizeExecutionWaypoint();
+
       double dist_thr;
       double yaw_thr = path_progression_yaw_thr_;
       double pitch_thr = path_progression_pitch_thr_;
@@ -801,6 +889,12 @@ namespace explorer
       }
 
       double wp_dist = calculateDistance(current_pose_, executing_path_[path_waypoint_ind_]);
+      const double wp_dx =
+          executing_path_[path_waypoint_ind_].position.x - current_pose_.position.x;
+      const double wp_dy =
+          executing_path_[path_waypoint_ind_].position.y - current_pose_.position.y;
+      const double wp_dz =
+          executing_path_[path_waypoint_ind_].position.z - current_pose_.position.z;
       
       double delta_yaw = std::abs(wp_yaw - current_yaw);
       truncateYaw(delta_yaw);
@@ -873,9 +967,10 @@ namespace explorer
       }
 
       ROS_INFO_THROTTLE(1.0,
-                        "[PCI][EXEC] wp=%d/%zu dist=%.2f thr=%.2f yaw=%.2f thr=%.2f pitch=%.2f thr=%.2f cam_pitch_pub=%d recv=%d",
+                        "[PCI][EXEC] wp=%d/%zu dist=%.2f dxyz=[%.2f %.2f %.2f] thr=%.2f yaw=%.2f thr=%.2f pitch=%.2f thr=%.2f cam_pitch_pub=%d recv=%d",
                         path_waypoint_ind_ + 1, executing_path_.size(), wp_dist,
-                        dist_thr, delta_yaw, yaw_thr, delta_pitch, pitch_thr,
+                        wp_dx, wp_dy, wp_dz, dist_thr, delta_yaw, yaw_thr,
+                        delta_pitch, pitch_thr,
                         cam_pitch_sub_.getNumPublishers(),
                         cam_pitch_received_);
       if (wp_dist <= dist_thr && delta_yaw <= yaw_thr && pitch_ok)
@@ -984,7 +1079,7 @@ namespace explorer
   }
 
   double PCIGeneral::calculateDistance(const geometry_msgs::Pose &p1,
-                                        const geometry_msgs::Pose &p2)
+                                        const geometry_msgs::Pose &p2) const
   {
     Eigen::Vector3d v1(p1.position.x, p1.position.y, p1.position.z);
     Eigen::Vector3d v2(p2.position.x, p2.position.y, p2.position.z);
@@ -1580,6 +1675,42 @@ namespace explorer
       stuck_dist_margin_ = 0.25;
       ROS_WARN_COND(param_verbosity >= Verbosity::WARN, "No stuck_dist_margin setting, setting it to %f (m).", stuck_dist_margin_);
     }
+
+    param_name = ns + "/waypoint_forward_sync_enable";
+    if (!ros::param::get(param_name, waypoint_forward_sync_enable_))
+    {
+      waypoint_forward_sync_enable_ = false;
+    }
+
+    param_name = ns + "/waypoint_forward_sync_window";
+    if (!ros::param::get(param_name, waypoint_forward_sync_window_))
+    {
+      waypoint_forward_sync_window_ = 40;
+    }
+    waypoint_forward_sync_window_ = std::max(1, waypoint_forward_sync_window_);
+
+    param_name = ns + "/waypoint_forward_sync_max_distance";
+    if (!ros::param::get(param_name, waypoint_forward_sync_max_distance_))
+    {
+      waypoint_forward_sync_max_distance_ = 0.60;
+    }
+    waypoint_forward_sync_max_distance_ =
+        std::max(0.05, waypoint_forward_sync_max_distance_);
+
+    param_name = ns + "/waypoint_forward_sync_min_improvement";
+    if (!ros::param::get(param_name, waypoint_forward_sync_min_improvement_))
+    {
+      waypoint_forward_sync_min_improvement_ = 0.05;
+    }
+    waypoint_forward_sync_min_improvement_ =
+        std::max(0.0, waypoint_forward_sync_min_improvement_);
+
+    ROS_WARN_COND(
+        param_verbosity >= Verbosity::INFO,
+        "Waypoint forward sync enable=%d window=%d max_distance=%.2f min_improvement=%.2f",
+        waypoint_forward_sync_enable_, waypoint_forward_sync_window_,
+        waypoint_forward_sync_max_distance_,
+        waypoint_forward_sync_min_improvement_);
 
     param_name = ns + "/reconnect_path";
     if (!ros::param::get(param_name, reconnect_path_))

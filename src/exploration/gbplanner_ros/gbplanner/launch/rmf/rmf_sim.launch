@@ -7,6 +7,8 @@
   <arg name="lidar_topic" default="/livox/lidar"/>
   <arg name="fixed_lidar_topic" default="/livox/lidar_fixed"/>
   <arg name="update_lidar_stamp_to_now" default="true"/>
+  <arg name="lidar_self_filter_en" default="true"/>
+  <arg name="lidar_self_filter_debug_en" default="true"/>
   <arg name="traj_server_en" default="true"/>
   <arg name="rviz_config" default="$(find gbplanner)/config/rviz/rmf_obelix_gbplanner3_safe.rviz"/>
 
@@ -34,6 +36,16 @@
     <param name="transform_cloud" value="true"/>
     <param name="fallback_to_frame_id_change" value="true"/>
     <param name="use_latest_transform_fallback" value="true"/>
+    <param name="self_filter_enable" value="$(arg lidar_self_filter_en)"/>
+    <param name="publish_self_filter_debug" value="$(arg lidar_self_filter_debug_en)"/>
+    <!-- iris_csj collision geometry expressed in the Livox sensor frame. -->
+    <param name="self_filter/body_half_x" value="0.255"/>
+    <param name="self_filter/body_half_y" value="0.255"/>
+    <param name="self_filter/body_min_z" value="-0.140"/>
+    <param name="self_filter/body_max_z" value="0.010"/>
+    <param name="self_filter/rotor_radius" value="0.148"/>
+    <param name="self_filter/rotor_center_z" value="-0.042"/>
+    <param name="self_filter/rotor_half_height" value="0.035"/>
   </node>
 
   <node pkg="tf" type="static_transform_publisher" name="tf_base_to_vi_sensor"

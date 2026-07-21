@@ -4,6 +4,13 @@ robot_type: kAerial
 output_type: kTopic
 init_motion_enable: false
 planner_trigger_lead_time: 0.4 #0.3
+preplan_enable: true
+preplan_trigger_remaining_time: 4.0
+preplan_min_current_remaining_distance: 0.50
+preplan_retry_interval: 1.5
+preplan_min_path_size: 2
+preplan_cache_max_age: 8.0
+preplan_start_tolerance: 0.60
 smooth_heading_enable: true
 reconnect_path: false
 set_first_wp_speed: true
@@ -20,7 +27,11 @@ path_progression_pitch_thr: 0.4
 stuck_detection_enable: true
 stuck_timeout: 4.0
 stuck_min_progress: 0.15
-stuck_dist_margin: 0.25
+stuck_dist_margin: 0.05
+waypoint_forward_sync_enable: true
+waypoint_forward_sync_window: 80
+waypoint_forward_sync_max_distance: 0.60
+waypoint_forward_sync_min_improvement: 0.05
 distance_budget_enable: true
 distance_budget_limit: 3000
 distance_budget_max_step: 1.0

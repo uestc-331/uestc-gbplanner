@@ -254,7 +254,8 @@ class Rrg {
                                                int& status);
   std::vector<geometry_msgs::Pose> getBestPathSimplified();
   bool isStartClearWithMinBound();
-  bool getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path);
+  bool getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path,
+                            bool blocked_root = false);
 
   bool homingRequired(std::vector<geometry_msgs::Pose> &homing_path);
   std::vector<geometry_msgs::Pose> searchHomingPath(std::string tgt_frame,
@@ -315,6 +316,11 @@ class Rrg {
   bool shortcutPath(const std::vector<geometry_msgs::Pose>& path_orig,
                     std::vector<geometry_msgs::Pose>& path_shortcut,
                     const std::string& log_context = "");
+  bool optimizeLocalPath(const std::vector<geometry_msgs::Pose>& path_orig,
+                         std::vector<geometry_msgs::Pose>& path_optimized);
+  bool isOptimizerSegmentSafe(const Eigen::Vector3d& start,
+                              const Eigen::Vector3d& end);
+  Eigen::Vector3d estimateClearanceGradient(const Eigen::Vector3d& point);
   bool isPathClearanceSafe(const std::vector<geometry_msgs::Pose>& path,
                            const std::string& log_context = "");
   bool isPointInsideGlobalPlanningBounds(const Eigen::Vector3d& point,

@@ -60,6 +60,8 @@ Visualization::Visualization(const ros::NodeHandle& nh,
       nh_.advertise<visualization_msgs::MarkerArray>("vis/hyperplanes", 10);
   mod_path_pub_ =
       nh_.advertise<visualization_msgs::MarkerArray>("vis/mod_path", 10);
+  optimized_path_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(
+      "vis/optimized_path", 10, true);
   blind_mod_path_pub_ =
       nh_.advertise<visualization_msgs::MarkerArray>("vis/blind_mod_path", 10);
 
@@ -2576,6 +2578,42 @@ void Visualization::visualizeModPath(
   }
   marker_array.markers.push_back(edge_marker);
   mod_path_pub_.publish(marker_array);
+}
+
+void Visualization::visualizeOptimizedPath(
+    const std::vector<geometry_msgs::Pose>& path) {
+  visualization_msgs::MarkerArray marker_array;
+  visualization_msgs::Marker marker;
+  marker.header.stamp = ros::Time::now();
+  marker.header.frame_id = world_frame_id;
+  marker.ns = "optimized_local_path";
+  marker.id = 0;
+
+  if (path.empty()) {
+    marker.action = visualization_msgs::Marker::DELETE;
+    marker_array.markers.push_back(marker);
+    optimized_path_pub_.publish(marker_array);
+    return;
+  }
+
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.type = visualization_msgs::Marker::LINE_STRIP;
+  marker.scale.x = 0.14;
+  marker.color.r = 0.0;
+  marker.color.g = 0.90;
+  marker.color.b = 0.90;
+  marker.color.a = 1.0;
+  marker.pose.orientation.w = 1.0;
+  marker.frame_locked = false;
+  for (const geometry_msgs::Pose& pose : path) {
+    geometry_msgs::Point point;
+    point.x = pose.position.x;
+    point.y = pose.position.y;
+    point.z = pose.position.z;
+    marker.points.push_back(point);
+  }
+  marker_array.markers.push_back(marker);
+  optimized_path_pub_.publish(marker_array);
 }
 
 void Visualization::visualizeBlindModPath(

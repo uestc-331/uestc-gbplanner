@@ -571,13 +571,17 @@ Rrg::LocalPlannerStatus Gbplanner::getLocalNavigationPath()
                   "[GBPLANNER][LOCAL] graph build status=%d ret_status=%d",
                   static_cast<int>(status), static_cast<int>(ret_status));
     const bool start_clear = rrg_->isStartClearWithMinBound();
-    if (!start_clear && rrg_->getStartRecoveryPath(out_srv_res_.path)) {
+    const bool blocked_root =
+        status == Rrg::GraphStatus::ERR_NO_FEASIBLE_PATH && start_clear;
+    if ((!start_clear || blocked_root) &&
+        rrg_->getStartRecoveryPath(out_srv_res_.path, blocked_root)) {
       out_srv_res_.status = planner_msgs::planner_srv::Response::kForward;
       ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
-                    "[GBPLANNER][LOCAL] returning start recovery path size=%zu",
+                    "[GBPLANNER][LOCAL] returning %s recovery path size=%zu",
+                    blocked_root ? "blocked-root" : "dirty-start",
                     out_srv_res_.path.size());
       return Rrg::LocalPlannerStatus::L_OK;
-    } else if (start_clear) {
+    } else if (start_clear && !blocked_root) {
       ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                     "[GBPLANNER][LOCAL] start recovery skipped: min-bound start is free");
     }
@@ -701,13 +705,17 @@ Rrg::LocalPlannerStatus Gbplanner::getExplorationPath()
                   "[GBPLANNER][EXPLORE] graph build status=%d ret_status=%d",
                   static_cast<int>(status), static_cast<int>(ret_status));
     const bool start_clear = rrg_->isStartClearWithMinBound();
-    if (!start_clear && rrg_->getStartRecoveryPath(out_srv_res_.path)) {
+    const bool blocked_root =
+        status == Rrg::GraphStatus::ERR_NO_FEASIBLE_PATH && start_clear;
+    if ((!start_clear || blocked_root) &&
+        rrg_->getStartRecoveryPath(out_srv_res_.path, blocked_root)) {
       out_srv_res_.status = planner_msgs::planner_srv::Response::kForward;
       ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
-                    "[GBPLANNER][EXPLORE] returning start recovery path size=%zu",
+                    "[GBPLANNER][EXPLORE] returning %s recovery path size=%zu",
+                    blocked_root ? "blocked-root" : "dirty-start",
                     out_srv_res_.path.size());
       return Rrg::LocalPlannerStatus::L_OK;
-    } else if (start_clear) {
+    } else if (start_clear && !blocked_root) {
       ROS_WARN_COND(global_verbosity >= Verbosity::WARN,
                     "[GBPLANNER][EXPLORE] start recovery skipped: min-bound start is free");
     }

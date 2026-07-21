@@ -5860,14 +5860,39 @@ std::vector<geometry_msgs::Pose> Rrg::getBestPathSimplified()
     }
   }
 
+  const std::vector<geometry_msgs::Pose> optimizer_fallback_path = ret;
+  bool optimizer_applied = false;
+  if (planning_params_.path_optimizer_enable) {
+    std::vector<geometry_msgs::Pose> optimized_path;
+    if (optimizeLocalPath(ret, optimized_path)) {
+      ret = optimized_path;
+      optimizer_applied = true;
+      visualization_->visualizeOptimizedPath(ret);
+    } else {
+      visualization_->visualizeOptimizedPath({});
+      ROS_INFO("[RRG][OPT] best_path_simplified using safe input path");
+    }
+  }
+
   if (!ret.empty() &&
       !isFinalPathSafeWithDirtyRootEscape(
           ret, robot_box_size_, "best_path_simplified/final")) {
-    ROS_WARN(
-        "[RRG][FINAL_PATH] Post-processed path failed final safety check, "
-        "size=%zu length=%.2f returning empty path instead of executing it.",
-        ret.size(), traverse_length);
-    return empty_path;
+    if (optimizer_applied &&
+        isFinalPathSafeWithDirtyRootEscape(
+            optimizer_fallback_path, robot_box_size_,
+            "best_path_simplified/optimizer_fallback")) {
+      ROS_WARN(
+          "[RRG][OPT] final check changed; falling back to pre-optimizer "
+          "path size=%zu",
+          optimizer_fallback_path.size());
+      ret = optimizer_fallback_path;
+    } else {
+      ROS_WARN(
+          "[RRG][FINAL_PATH] Post-processed path failed final safety check, "
+          "size=%zu length=%.2f returning empty path instead of executing it.",
+          ret.size(), traverse_length);
+      return empty_path;
+    }
   }
 
   visualization_->visualizeRefPath(ret);
@@ -6107,14 +6132,39 @@ std::vector<geometry_msgs::Pose> Rrg::getBestPath(std::string tgt_frame,
     }
   }
 
+  const std::vector<geometry_msgs::Pose> optimizer_fallback_path = ret;
+  bool optimizer_applied = false;
+  if (planning_params_.path_optimizer_enable) {
+    std::vector<geometry_msgs::Pose> optimized_path;
+    if (optimizeLocalPath(ret, optimized_path)) {
+      ret = optimized_path;
+      optimizer_applied = true;
+      visualization_->visualizeOptimizedPath(ret);
+    } else {
+      visualization_->visualizeOptimizedPath({});
+      ROS_INFO("[RRG][OPT] best_path using safe input path");
+    }
+  }
+
   if (!ret.empty() &&
       !isFinalPathSafeWithDirtyRootEscape(ret, robot_box_size_,
                                           "best_path/final")) {
-    ROS_WARN(
-        "[RRG][FINAL_PATH] Post-processed path failed final safety check, "
-        "size=%zu length=%.2f returning empty path instead of executing it.",
-        ret.size(), traverse_length);
-    return empty_path;
+    if (optimizer_applied &&
+        isFinalPathSafeWithDirtyRootEscape(
+            optimizer_fallback_path, robot_box_size_,
+            "best_path/optimizer_fallback")) {
+      ROS_WARN(
+          "[RRG][OPT] final check changed; falling back to pre-optimizer "
+          "path size=%zu",
+          optimizer_fallback_path.size());
+      ret = optimizer_fallback_path;
+    } else {
+      ROS_WARN(
+          "[RRG][FINAL_PATH] Post-processed path failed final safety check, "
+          "size=%zu length=%.2f returning empty path instead of executing it.",
+          ret.size(), traverse_length);
+      return empty_path;
+    }
   }
 
   visualization_->visualizeRefPath(ret);
@@ -9378,8 +9428,10 @@ std::vector<geometry_msgs::Pose> Rrg::calculateGlobalPath(bool& homing_engaged)
   StateVec cur_state;
   cur_state << current_state_[0], current_state_[1], current_state_[2],
       current_state_[3], current_state_[4];
-  cur_state[2] -=
-      (planning_params_.robot_height - planning_params_.max_ground_height);
+  if (robot_params_.type != RobotType::kAerialRobot) {
+    cur_state[2] -=
+        (planning_params_.robot_height - planning_params_.max_ground_height);
+  }
   Vertex* link_vertex = NULL;
   const double kRadiusLimit = 1.5;  // 0.5
   bool connected_to_graph =
@@ -9760,8 +9812,10 @@ std::vector<geometry_msgs::Pose> Rrg::runGlobalPlanner(int vertex_id,
   StateVec cur_state;
   cur_state << current_state_[0], current_state_[1], current_state_[2],
       current_state_[3], current_state_[4];
-  cur_state[2] -=
-      (planning_params_.robot_height - planning_params_.max_ground_height);
+  if (robot_params_.type != RobotType::kAerialRobot) {
+    cur_state[2] -=
+        (planning_params_.robot_height - planning_params_.max_ground_height);
+  }
   Vertex* link_vertex = NULL;
   const double kRadiusLimit = 1.5;  // 0.5
   bool connected_to_graph =
@@ -10694,6 +10748,222 @@ double Rrg::computePathSmoothnessCost(const std::vector<Eigen::Vector3d>& path) 
   return cost;
 }
 
+Eigen::Vector3d Rrg::estimateClearanceGradient(
+    const Eigen::Vector3d& point) {
+  const double delta = planning_params_.path_optimizer_gradient_step;
+  Eigen::Vector3d gradient = Eigen::Vector3d::Zero();
+  for (int axis = 0; axis < 3; ++axis) {
+    Eigen::Vector3d positive = point;
+    Eigen::Vector3d negative = point;
+    positive[axis] += delta;
+    negative[axis] -= delta;
+    const double positive_distance = map_manager_->getPointDistance(positive);
+    const double negative_distance = map_manager_->getPointDistance(negative);
+    if (std::isfinite(positive_distance) && positive_distance >= 0.0 &&
+        std::isfinite(negative_distance) && negative_distance >= 0.0) {
+      gradient[axis] =
+          (positive_distance - negative_distance) / (2.0 * delta);
+    }
+  }
+  if (!gradient.allFinite() || gradient.norm() <= 1e-6) {
+    return Eigen::Vector3d::Zero();
+  }
+  return gradient.normalized();
+}
+
+bool Rrg::isOptimizerSegmentSafe(const Eigen::Vector3d& start,
+                                 const Eigen::Vector3d& end) {
+  if (!isSegmentInsideGlobalPlanningBounds(start, end, robot_box_size_, false,
+                                           "path_optimizer")) {
+    return false;
+  }
+  if (planning_params_.geofence_checking_enable &&
+      GeofenceManager::CoordinateStatus::kOK !=
+          geofence_manager_->getPathStatus(
+              Eigen::Vector2d(start.x(), start.y()),
+              Eigen::Vector2d(end.x(), end.y()),
+              Eigen::Vector2d(robot_box_size_.x(), robot_box_size_.y()))) {
+    return false;
+  }
+  const Eigen::Vector3d checked_start = start + robot_params_.center_offset;
+  const Eigen::Vector3d checked_end = end + robot_params_.center_offset;
+  return map_manager_->getPathStatus(checked_start, checked_end,
+                                     robot_box_size_, true) ==
+         VoxelStatus::kFree;
+}
+
+bool Rrg::optimizeLocalPath(
+    const std::vector<geometry_msgs::Pose>& path_orig,
+    std::vector<geometry_msgs::Pose>& path_optimized) {
+  path_optimized.clear();
+  if (!planning_params_.path_optimizer_enable || path_orig.size() < 4) {
+    return false;
+  }
+
+  const ros::WallTime start_time = ros::WallTime::now();
+  auto elapsed = [&]() { return (ros::WallTime::now() - start_time).toSec(); };
+  std::vector<Eigen::Vector3d> original_points;
+  original_points.reserve(path_orig.size());
+  for (const geometry_msgs::Pose& pose : path_orig) {
+    original_points.emplace_back(pose.position.x, pose.position.y,
+                                 pose.position.z);
+  }
+  std::vector<Eigen::Vector3d> points = original_points;
+
+  int accepted_moves = 0;
+  int completed_iterations = 0;
+  bool timed_out = false;
+  const size_t first_movable = std::min(
+      path_orig.size() - 1,
+      static_cast<size_t>(planning_params_.path_optimizer_fix_start_points));
+  for (int iteration = 0;
+       iteration < planning_params_.path_optimizer_iterations; ++iteration) {
+    if (elapsed() >= planning_params_.path_optimizer_max_time) {
+      timed_out = true;
+      break;
+    }
+    std::vector<Eigen::Vector3d> next_points = points;
+    for (size_t index = first_movable; index + 1 < points.size(); ++index) {
+      if (elapsed() >= planning_params_.path_optimizer_max_time) {
+        timed_out = true;
+        break;
+      }
+      const Eigen::Vector3d smooth_force =
+          0.5 * (points[index - 1] + points[index + 1]) - points[index];
+      double current_clearance =
+          map_manager_->getPointDistance(points[index]);
+      if (!std::isfinite(current_clearance) || current_clearance < 0.0) {
+        current_clearance = 0.0;
+      }
+      const double clearance_target = std::max(
+          planning_params_.path_optimizer_min_clearance,
+          planning_params_.centerline_clearance_target);
+      const double clearance_deficit = std::max(
+          0.0, (clearance_target - current_clearance) / clearance_target);
+      const Eigen::Vector3d clearance_force =
+          clearance_deficit > 0.0 ? estimateClearanceGradient(points[index])
+                                  : Eigen::Vector3d::Zero();
+      const Eigen::Vector3d anchor_force =
+          original_points[index] - points[index];
+      Eigen::Vector3d displacement =
+          planning_params_.path_optimizer_smooth_weight * smooth_force +
+          planning_params_.path_optimizer_clearance_weight *
+              clearance_deficit * clearance_force +
+          planning_params_.path_optimizer_anchor_weight * anchor_force;
+      if (!displacement.allFinite() || displacement.norm() <= 1e-6) continue;
+
+      if (displacement.norm() > planning_params_.path_optimizer_step_size) {
+        displacement = planning_params_.path_optimizer_step_size *
+                       displacement.normalized();
+      }
+      double step_scale = 1.0;
+      for (int attempt = 0; attempt < 4; ++attempt) {
+        Eigen::Vector3d candidate =
+            points[index] + step_scale * displacement;
+        const Eigen::Vector3d deviation = candidate - original_points[index];
+        if (deviation.norm() > planning_params_.path_optimizer_max_deviation &&
+            deviation.norm() > 1e-6) {
+          candidate = original_points[index] +
+                      planning_params_.path_optimizer_max_deviation *
+                          deviation.normalized();
+        }
+        const double clearance = map_manager_->getPointDistance(candidate);
+        if (std::isfinite(clearance) &&
+            clearance >= planning_params_.path_optimizer_min_clearance &&
+            clearance + 0.01 >= current_clearance &&
+            isOptimizerSegmentSafe(next_points[index - 1], candidate) &&
+            isOptimizerSegmentSafe(candidate, points[index + 1])) {
+          next_points[index] = candidate;
+          ++accepted_moves;
+          break;
+        }
+        step_scale *= 0.5;
+      }
+    }
+    points.swap(next_points);
+    ++completed_iterations;
+    if (timed_out) break;
+  }
+
+  if (accepted_moves == 0) {
+    ROS_INFO("[RRG][OPT] fallback=no_safe_move time=%.4fs timeout=%d",
+             elapsed(), timed_out);
+    return false;
+  }
+
+  path_optimized = path_orig;
+  double max_deviation = 0.0;
+  for (size_t index = 0; index < path_optimized.size(); ++index) {
+    path_optimized[index].position.x = points[index].x();
+    path_optimized[index].position.y = points[index].y();
+    path_optimized[index].position.z = points[index].z();
+    max_deviation = std::max(
+        max_deviation, (points[index] - original_points[index]).norm());
+  }
+  for (size_t index = 0; index + 1 < path_optimized.size(); ++index) {
+    const Eigen::Vector3d direction = points[index + 1] - points[index];
+    if (direction.head<2>().norm() > 1e-3) {
+      path_optimized[index].orientation = tf::createQuaternionMsgFromYaw(
+          std::atan2(direction.y(), direction.x()));
+    }
+  }
+  path_optimized.back().orientation =
+      path_optimized[path_optimized.size() - 2].orientation;
+
+  double raw_min_clearance = 0.0;
+  double raw_clearance_cost = 0.0;
+  double optimized_min_clearance = 0.0;
+  double optimized_clearance_cost = 0.0;
+  computePathClearanceCost(path_orig, raw_min_clearance, raw_clearance_cost);
+  computePathClearanceCost(path_optimized, optimized_min_clearance,
+                           optimized_clearance_cost);
+  const double raw_smoothness = computePathSmoothnessCost(original_points);
+  const double optimized_smoothness = computePathSmoothnessCost(points);
+  const double clearance_target = std::max(
+      planning_params_.path_optimizer_min_clearance,
+      planning_params_.centerline_clearance_target);
+  const bool smoothness_improved =
+      optimized_smoothness + 1e-4 < raw_smoothness;
+  const bool clearance_improved =
+      optimized_min_clearance > raw_min_clearance + 0.01 ||
+      optimized_clearance_cost + 1e-4 < raw_clearance_cost;
+  const bool raw_needs_clearance = raw_min_clearance < clearance_target;
+  const bool objective_improved =
+      smoothness_improved || (raw_needs_clearance && clearance_improved);
+  const bool clearance_preserved =
+      optimized_min_clearance + 0.01 >= raw_min_clearance;
+  const bool smoothness_preserved =
+      optimized_smoothness <= raw_smoothness * 1.10 + 1e-4;
+  if (!objective_improved || !clearance_preserved ||
+      (clearance_improved && !smoothness_preserved)) {
+    ROS_INFO(
+        "[RRG][OPT] fallback=no_improvement time=%.4fs smooth=%.4f->%.4f "
+        "clearance=%.3f->%.3f cost=%.3f->%.3f",
+        elapsed(), raw_smoothness, optimized_smoothness, raw_min_clearance,
+        optimized_min_clearance, raw_clearance_cost,
+        optimized_clearance_cost);
+    path_optimized.clear();
+    return false;
+  }
+
+  if (!isFinalPathSafeWithDirtyRootEscape(path_optimized, robot_box_size_,
+                                           "path_optimizer/final")) {
+    ROS_WARN("[RRG][OPT] fallback=final_safety time=%.4fs", elapsed());
+    path_optimized.clear();
+    return false;
+  }
+
+  ROS_WARN(
+      "[RRG][OPT] accepted iterations=%d/%d moves=%d timeout=%d time=%.4fs "
+      "max_dev=%.3f smooth=%.4f->%.4f clearance=%.3f->%.3f "
+      "cost=%.3f->%.3f size=%zu",
+      completed_iterations, planning_params_.path_optimizer_iterations,
+      accepted_moves, timed_out, elapsed(), max_deviation, raw_smoothness,
+      optimized_smoothness, raw_min_clearance, optimized_min_clearance,
+      raw_clearance_cost, optimized_clearance_cost, path_optimized.size());
+  return true;
+}
+
 bool Rrg::shortcutPath(const std::vector<geometry_msgs::Pose>& path_orig,
                        std::vector<geometry_msgs::Pose>& path_shortcut,
                        const std::string& log_context) {
@@ -10851,13 +11121,14 @@ bool Rrg::isStartClearWithMinBound() {
   return start_status == VoxelStatus::kFree;
 }
 
-bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
+bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path,
+                               bool blocked_root) {
   path.clear();
   if (!planning_params_.start_recovery_enable) {
     return false;
   }
 
-  if (isStartClearWithMinBound()) {
+  if (isStartClearWithMinBound() && !blocked_root) {
     ROS_WARN(
         "[RRG][START_RECOVERY] skipped because min-bound start check is free");
     return false;
@@ -10869,15 +11140,23 @@ bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
   const Eigen::Vector3d root_check_pos = root_pos + robot_params_.center_offset;
   const VoxelStatus root_status =
       map_manager_->getBoxStatus(root_check_pos, robot_box_size_, true);
+  double root_clearance = map_manager_->getPointDistance(root_pos);
+  if (!std::isfinite(root_clearance) || root_clearance < 0.0) {
+    root_clearance = 0.0;
+  }
+  const Eigen::Vector3d minimum_box_size =
+      robot_params_.size + robot_params_.size_extension_min;
 
   ROS_WARN(
       "[RRG][START_RECOVERY] requested root_status=%s root=[%.2f %.2f %.2f "
-      "yaw=%.2f] radius=[%.2f %.2f] step=%.2f angle_step=%.1f",
+      "yaw=%.2f] radius=[%.2f %.2f] step=%.2f angle_step=%.1f "
+      "blocked_root=%d root_clearance=%.3f",
       voxelStatusToString(root_status), root_state[0], root_state[1],
       root_state[2], root_state[3], planning_params_.start_recovery_radius_min,
       planning_params_.start_recovery_radius_max,
       planning_params_.start_recovery_radius_step,
-      planning_params_.start_recovery_angle_step_deg);
+      planning_params_.start_recovery_angle_step_deg, blocked_root,
+      root_clearance);
 
   struct RecoveryCandidate {
     Eigen::Vector3d pos;
@@ -10903,14 +11182,16 @@ bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
       const Eigen::Vector3d candidate_check_pos =
           candidate_pos + robot_params_.center_offset;
 
-      if (!isPointInsideGlobalPlanningBounds(candidate_pos, robot_box_size_,
+      const Eigen::Vector3d& candidate_box_size =
+          blocked_root ? minimum_box_size : robot_box_size_;
+      if (!isPointInsideGlobalPlanningBounds(candidate_pos, candidate_box_size,
                                              false,
                                              "start_recovery_candidate")) {
         continue;
       }
 
       const VoxelStatus candidate_status = map_manager_->getBoxStatus(
-          candidate_check_pos, robot_box_size_, true);
+          candidate_check_pos, candidate_box_size, true);
       const bool candidate_unknown =
           candidate_status == VoxelStatus::kUnknown;
       if (candidate_status != VoxelStatus::kFree &&
@@ -10934,6 +11215,22 @@ bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
             planning_params_.start_recovery_min_clearance);
         continue;
       }
+      if (blocked_root) {
+        const double clearance_gain = clearance - root_clearance;
+        const bool gain_ok =
+            clearance_gain >=
+            planning_params_.dirty_root_escape_min_clearance_gain;
+        const bool target_ok =
+            clearance >=
+            planning_params_.dirty_root_escape_min_target_clearance;
+        if (!gain_ok && !target_ok) {
+          ROS_INFO(
+              "[RRG][BLOCKED_ROOT] candidate radius=%.2f angle=%.2f "
+              "clearance=%.3f gain=%.3f pass=0",
+              radius, angle, clearance, clearance_gain);
+          continue;
+        }
+      }
       if (candidate_unknown) {
         ROS_INFO(
             "[RRG][START_RECOVERY] candidate radius=%.2f angle=%.2f "
@@ -10945,7 +11242,8 @@ bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
       const double target_radius =
           std::min(planning_params_.start_recovery_radius_max,
                    std::max(planning_params_.start_recovery_radius_min, 1.20));
-      double score = std::fabs(radius - target_radius) - 0.50 * clearance;
+      double score = std::fabs(radius - target_radius) -
+                     (blocked_root ? 1.0 : 0.50) * clearance;
       if (planning_params_.start_recovery_prefer_forward) {
         score -= 0.50 * forward_dot;
       }
@@ -10962,6 +11260,7 @@ bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
       std::max(0.05, planning_params_.start_recovery_path_resolution);
   const double ignore_start_dist =
       std::max(0.0, planning_params_.start_recovery_ignore_start_dist);
+  const double blocked_near_dist = 0.8;
 
   for (const RecoveryCandidate& candidate : candidates) {
     const Eigen::Vector3d delta = candidate.pos - root_pos;
@@ -10971,34 +11270,59 @@ bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
     }
 
     bool segment_safe = true;
+    double previous_clearance = root_clearance;
     const int steps =
         std::max(1, static_cast<int>(std::ceil(length / path_resolution)));
     for (int i = 1; i <= steps; ++i) {
       const double alpha = static_cast<double>(i) / static_cast<double>(steps);
-      if (alpha * length < ignore_start_dist && i < steps) {
+      const double traveled = alpha * length;
+      if (!blocked_root && traveled < ignore_start_dist && i < steps) {
         continue;
       }
       const Eigen::Vector3d sample = root_pos + alpha * delta;
       const Eigen::Vector3d sample_check = sample + robot_params_.center_offset;
-      if (!isPointInsideGlobalPlanningBounds(sample, robot_box_size_, false,
+      const bool in_blocked_prefix =
+          blocked_root && traveled <= blocked_near_dist;
+      const Eigen::Vector3d& sample_box_size =
+          in_blocked_prefix ? minimum_box_size : robot_box_size_;
+      if (!isPointInsideGlobalPlanningBounds(sample, sample_box_size, false,
                                              "start_recovery_segment")) {
         segment_safe = false;
         break;
       }
       const VoxelStatus sample_status =
-          map_manager_->getBoxStatus(sample_check, robot_box_size_, true);
+          map_manager_->getBoxStatus(sample_check, sample_box_size, true);
+      double sample_clearance = map_manager_->getPointDistance(sample);
+      if (!std::isfinite(sample_clearance) || sample_clearance < 0.0) {
+        sample_clearance = 0.0;
+      }
+      const bool improving_blocked_prefix =
+          in_blocked_prefix && sample_status == VoxelStatus::kOccupied &&
+          sample_clearance + 0.02 >= root_clearance &&
+          sample_clearance + 0.05 >= previous_clearance;
+      const bool allowed_unknown =
+          planning_params_.start_recovery_allow_unknown &&
+          sample_status == VoxelStatus::kUnknown;
       if (sample_status != VoxelStatus::kFree &&
-          !(planning_params_.start_recovery_allow_unknown &&
-            sample_status == VoxelStatus::kUnknown)) {
+          !improving_blocked_prefix && !allowed_unknown) {
         ROS_INFO(
             "[RRG][START_RECOVERY] segment reject radius=%.2f angle=%.2f "
-            "sample=%d/%d status=%s pos=[%.2f %.2f %.2f]",
+            "sample=%d/%d status=%s clearance=%.3f previous=%.3f "
+            "pos=[%.2f %.2f %.2f] blocked_root=%d",
             candidate.radius, candidate.angle, i, steps,
-            voxelStatusToString(sample_status), sample.x(), sample.y(),
-            sample.z());
+            voxelStatusToString(sample_status), sample_clearance,
+            previous_clearance, sample.x(), sample.y(), sample.z(),
+            blocked_root);
         segment_safe = false;
         break;
       }
+      if (improving_blocked_prefix) {
+        ROS_WARN(
+            "[RRG][BLOCKED_ROOT] tolerated improving occupied prefix "
+            "distance=%.2f clearance=%.3f previous=%.3f",
+            traveled, sample_clearance, previous_clearance);
+      }
+      previous_clearance = sample_clearance;
     }
     if (!segment_safe) {
       continue;
@@ -11022,9 +11346,11 @@ bool Rrg::getStartRecoveryPath(std::vector<geometry_msgs::Pose>& path) {
 
     ROS_WARN(
         "[RRG][START_RECOVERY] recovery path accepted size=%zu length=%.2f "
-        "radius=%.2f angle=%.2f dot=%.3f clearance=%.3f ignored_start=%.2f",
+        "radius=%.2f angle=%.2f dot=%.3f clearance=%.3f ignored_start=%.2f "
+        "blocked_root=%d root_clearance=%.3f",
         path.size(), length, candidate.radius, candidate.angle,
-        candidate.forward_dot, candidate.clearance, ignore_start_dist);
+        candidate.forward_dot, candidate.clearance, ignore_start_dist,
+        blocked_root, root_clearance);
     visualization_->visualizeRefPath(path);
     return true;
   }
